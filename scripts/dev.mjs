@@ -105,12 +105,13 @@ async function waitForNgrokUrl(timeoutMs = 15000) {
 }
 
 function showBanner(url, stable) {
-  const line = "═".repeat(64);
+  const line = "═".repeat(68);
   const webhook = `${url}/sendblue/webhook`;
+  const dashboard = `http://localhost:5173`;
   const from = envVars.SENDBLUE_FROM_NUMBER;
   const fromLine = from
-    ? `  Your Sendblue number:        ${from}  ← text this from another phone`
-    : `  ⚠ SENDBLUE_FROM_NUMBER is not set — outbound sends will fail.\n    Run: npm run sendblue:sync   (pulls it from the Sendblue CLI)`;
+    ? `  📱 Text this Sendblue number:  ${from}  (from a DIFFERENT phone)`
+    : `  ⚠ SENDBLUE_FROM_NUMBER is not set — outbound sends will fail.\n     Run: npm run sendblue:sync   (pulls it from the Sendblue CLI)`;
 
   const headline = stable
     ? `your STABLE public URL is live.`
@@ -123,14 +124,15 @@ function showBanner(url, stable) {
 
   console.log(`
 ${C.banner}${line}
-  ${headline}
+  Boop is ready — ${headline}
 
-  Public URL:                  ${url}
-  Sendblue webhook (inbound):  ${webhook}
+  🐶 Debug dashboard (click me):   ${dashboard}
+  🌐 Public URL:                   ${url}
+  📮 Sendblue webhook (inbound):   ${webhook}
 ${fromLine}
 
   → Sendblue dashboard → API Settings → Webhook Configuration
-    Add as INBOUND MESSAGE webhook. Paste the URL above.
+    Add as INBOUND MESSAGE webhook. Paste the webhook URL above.
 ${line}${C.reset}${footer}`);
 }
 
@@ -176,6 +178,21 @@ if (useNgrok && ngrokInstalled) {
 } else if (hasStaticUrl) {
   // User has their own tunnel (Cloudflare, Caddy, etc). Just show the banner.
   setTimeout(() => showBanner(publicUrl, true), 1500);
+} else {
+  // No tunnel at all (ngrok missing + no stable URL). Show dashboard-only banner.
+  setTimeout(() => {
+    const line = "═".repeat(68);
+    console.log(`
+${C.banner}${line}
+  Boop is running locally.
+
+  🐶 Debug dashboard:   http://localhost:5173
+
+  ⚠ No public tunnel configured. iMessage won't work until you expose
+    the server. Use the Chat tab in the dashboard to test for now.
+${line}${C.reset}
+`);
+  }, 1500);
 }
 
 let shuttingDown = false;
