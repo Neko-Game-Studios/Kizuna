@@ -391,12 +391,21 @@ You can override with ANTHROPIC_API_KEY in .env.local if you'd rather use an API
 
   if (answers.runConvex) {
     await runConvexDev();
-    console.log(
-      "\nConvex wrote your deployment URL to .env.local. If VITE_CONVEX_URL is missing, copy CONVEX_URL to VITE_CONVEX_URL.",
-    );
     const after = readEnv(ENV_PATH);
-    if (after.CONVEX_URL && !after.VITE_CONVEX_URL) {
-      writeEnv(ENV_PATH, { ...after, VITE_CONVEX_URL: after.CONVEX_URL });
+
+    // CONVEX_DEPLOYMENT is what `convex dev` writes; derive CONVEX_URL from it
+    // so it matches even if a stale URL lingered from a previous setup.
+    const deploymentMatch = after.CONVEX_DEPLOYMENT?.match(/^([a-z]+):([\w-]+)/);
+    if (deploymentMatch) {
+      const url = `https://${deploymentMatch[2]}.convex.cloud`;
+      if (after.CONVEX_URL !== url || after.VITE_CONVEX_URL !== url) {
+        writeEnv(ENV_PATH, {
+          ...after,
+          CONVEX_URL: url,
+          VITE_CONVEX_URL: url,
+        });
+        console.log(`\n✓ Synced CONVEX_URL + VITE_CONVEX_URL → ${url}`);
+      }
     }
   } else {
     console.log("\nSkipped Convex. Run `npx convex dev` yourself when ready.");
