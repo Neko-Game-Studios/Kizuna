@@ -126,6 +126,18 @@ export async function ensureWebhookSubscription(publicUrl: string): Promise<Webh
   return existing;
 }
 
+// Short in-process cache so the webhook hot path doesn't query Convex on
+// every incoming event. The secret only changes on a re-subscribe, which
+// is rare; a 60s TTL is short enough that a rotation propagates quickly
+// without making every webhook eat a network round-trip.
+let secretCache: { at: number; value: string | null } | null = null;
+const SECRET_CACHE_TTL_MS = 60_000;
+
 export async function getStoredWebhookSecret(): Promise<string | null> {
-  return await convex.query(api.settings.get, { key: SETTINGS_SECRET_KEY });
+  if (secretCache && Date.now() - secretCache.at < SECRET_CACHE_TTL_MS) {
+    return secretCache.value;
+  }
+  const value = await convex.query(api.settings.get, { key: SETTINGS_SECRET_KEY });
+  secretCache = { at: Date.now(), value };
+  return value;
 }

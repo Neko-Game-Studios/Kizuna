@@ -366,13 +366,19 @@ export async function handleEmailEvent(event: NormalizedTriggerEvent): Promise<v
     `[proactive] event from ${connectionId}: subject=${JSON.stringify(email.subject || "(none)")} sender=${JSON.stringify(email.sender || "(none)")}`,
   );
 
+  // Prime the warmup set BEFORE the enabled check. Otherwise events that
+  // arrive while the feature is disabled never reach this set, and the very
+  // first event after re-enabling gets dropped as "warmup" — which would
+  // make the toggle silently swallow the first real email per connection.
+  const isFirstEventForConnection = !warmupSeen.has(connectionId);
+  warmupSeen.add(connectionId);
+
   if (!(await isProactiveEnabled())) {
     console.log(`[proactive] disabled via settings; ignoring event`);
     return;
   }
 
-  if (!warmupSeen.has(connectionId)) {
-    warmupSeen.add(connectionId);
+  if (isFirstEventForConnection) {
     console.log(`[proactive] warmup, skipping classification for connection ${connectionId}`);
     return;
   }

@@ -192,6 +192,23 @@ export function createComposioRouter(): express.Router {
         res.status(400).json({ error: "missing webhook headers/body" });
         return;
       }
+      // Independent freshness check on top of the SDK's HMAC verify. The
+      // header is Unix seconds (some providers ship ms; tolerate both).
+      // Reject anything more than ~5 min off so a captured signed request
+      // can't be replayed indefinitely if a future SDK relaxes its own
+      // staleness check.
+      const tsNum = Number(timestamp);
+      if (Number.isFinite(tsNum)) {
+        const tsMs = tsNum > 1e12 ? tsNum : tsNum * 1000;
+        const skew = Math.abs(Date.now() - tsMs);
+        if (skew > 5 * 60 * 1000) {
+          console.warn(
+            `[composio-webhook] stale timestamp (skew=${skew}ms); rejecting`,
+          );
+          res.status(401).end();
+          return;
+        }
+      }
       const secret = await getStoredWebhookSecret();
       if (!secret) {
         console.warn("[composio-webhook] no stored secret; cannot verify — rejecting");
