@@ -1,5 +1,5 @@
 {
-  "name": "boop-agent",
+  "name": "kizuna-agent",
   "version": "0.1.0",
   "private": true,
   "description": "Telegram-first personal agent powered by Codex, with memory and integrations you add.",

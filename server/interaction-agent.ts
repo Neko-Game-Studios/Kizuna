@@ -103,7 +103,7 @@ Self-inspection (no spawn needed — answer instantly):
 - "What integrations / accounts are connected?" / "Which Gmail account?" → list_integrations
 - "Is there a tool for X?" / "Can you connect to Y?" → search_composio_catalog
 - "Is Gmail connected?" / "What tools does Notion expose?" → inspect_toolkit (set includeTools=true if they want the tool list)
-Use these tools when the user asks about Boop's own configuration, connected
+Use these tools when the user asks about Kizuna's own configuration, connected
 accounts, or whether a service is reachable. They're cheap and synchronous —
 no ack required.
 
@@ -140,7 +140,7 @@ export async function handleUserMessage(opts: HandleOpts): Promise<string> {
   const selfServer = createSelfMcp();
 
   const ackServer = createSdkMcpServer({
-    name: "boop-ack",
+    name: "kizuna-ack",
     version: "0.1.0",
     tools: [
       tool(
@@ -177,7 +177,7 @@ export async function handleUserMessage(opts: HandleOpts): Promise<string> {
   });
 
   const spawnServer = createSdkMcpServer({
-    name: "boop-spawn",
+    name: "kizuna-spawn",
     version: "0.1.0",
     tools: [
       tool(
@@ -272,8 +272,6 @@ export async function handleUserMessage(opts: HandleOpts): Promise<string> {
   }
 
   broadcast("assistant_message", { conversationId: opts.conversationId, content: reply });
-
-  // Background extraction — fire-and-forget; don't block the reply.
   extractAndStore({
     conversationId: opts.conversationId,
     userMessage: opts.content,

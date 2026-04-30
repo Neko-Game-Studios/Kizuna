@@ -12,10 +12,6 @@ const running = new Map<string, AbortController>();
 function randomId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
-
-// Composio surfaces the targeted account in a few different shapes depending on
-// the tool. Pull whichever one is present so multi-account runs (e.g. 3 Gmail
-// inboxes) make the chosen account visible per call.
 function extractAccounts(input: unknown): string[] {
   if (!input || typeof input !== "object") return [];
   const accounts = new Set<string>();
@@ -23,12 +19,10 @@ function extractAccounts(input: unknown): string[] {
     if (typeof v === "string" && v.trim()) accounts.add(v.trim());
   };
   const obj = input as Record<string, unknown>;
-  // Direct fields on the top-level call (single-execute, native Composio tools).
   collect(obj.account);
   collect(obj.connectedAccountId);
   collect(obj.connected_account_id);
   if (Array.isArray(obj.accounts)) obj.accounts.forEach(collect);
-  // COMPOSIO_MULTI_EXECUTE_TOOL fans out: { tools: [{ account, ... }] }.
   if (Array.isArray(obj.tools)) {
     for (const t of obj.tools) {
       if (t && typeof t === "object") {
@@ -124,7 +118,7 @@ export async function spawnExecutionAgent(opts: SpawnOptions): Promise<SpawnResu
     : undefined;
   const mcpServers = {
     ...integrationServers,
-    ...(draftServer ? { "boop-drafts": draftServer } : {}),
+    ...(draftServer ? { "kizuna-drafts": draftServer } : {}),
   };
   const allowedTools = [
     "WebSearch",
@@ -147,8 +141,6 @@ export async function spawnExecutionAgent(opts: SpawnOptions): Promise<SpawnResu
         model: requestedModel,
         mcpServers,
         allowedTools,
-        // Load .claude/skills/ so the model can invoke SKILL.md playbooks. Without
-        // this the SDK runs in isolation mode and skills are silently ignored.
         settingSources: ["project"],
         permissionMode: "bypassPermissions",
         abortController: abort,
@@ -194,8 +186,6 @@ export async function spawnExecutionAgent(opts: SpawnOptions): Promise<SpawnResu
           }
         }
       } else if (msg.type === "result") {
-        // Always take the aggregate from modelUsage — msg.usage is just the
-        // final turn's raw tokens and massively undercounts on tool-heavy runs.
         usage = aggregateUsageFromResult(msg, requestedModel);
       }
     }
@@ -227,7 +217,6 @@ export async function spawnExecutionAgent(opts: SpawnOptions): Promise<SpawnResu
     cacheCreationTokens: usage.cacheCreationTokens,
     costUsd: usage.costUsd,
   });
-  // Also append to the usage log so total-cost queries cover every layer.
   if (usage.costUsd > 0 || usage.inputTokens > 0) {
     await convex.mutation(api.usageRecords.record, {
       source: "execution",

@@ -8,17 +8,8 @@ export type ToolkitAuthMode = "managed" | "byo";
 export interface CuratedToolkit {
   slug: string;
   displayName: string;
-  // "managed"  = Composio hosts a shared OAuth app — click Connect, it works.
-  // "byo"      = User must register their own OAuth app on the toolkit's dev portal
-  //              and add it as an Auth Config in Composio's dashboard first.
-  //              Composio now ships managed OAuth for most toolkits; reserve "byo"
-  //              for the rare cases where a hosted app isn't available.
   authMode: ToolkitAuthMode;
 }
-
-// Hand-picked toolkits surfaced in the debug UI. Composio exposes 1000+ total,
-// but rendering them all is noisy; users can still connect anything outside
-// this list by editing this array.
 export const CURATED_TOOLKITS: CuratedToolkit[] = [
   { slug: "gmail", displayName: "Gmail", authMode: "managed" },
   { slug: "googlecalendar", displayName: "Google Calendar", authMode: "managed" },
@@ -58,8 +49,8 @@ export function getComposio(): Composio<ClaudeAgentSDKProvider> | null {
   return singleton;
 }
 
-export function boopUserId(): string {
-  return process.env.COMPOSIO_USER_ID ?? "boop-default";
+export function kizunaUserId(): string {
+  return process.env.COMPOSIO_USER_ID ?? "kizuna-default";
 }
 
 export function displayNameFor(slug: string): string {
@@ -99,8 +90,6 @@ export interface ToolSummary {
   name: string;
   description?: string;
 }
-
-// Composio's toolkit catalog rarely changes; cache the full list for the life of the process.
 let toolkitMetaCache: Promise<Map<string, ToolkitMeta>> | null = null;
 
 async function fetchAllToolkitMeta(): Promise<Map<string, ToolkitMeta>> {
@@ -124,8 +113,6 @@ async function fetchAllToolkitMeta(): Promise<Map<string, ToolkitMeta>> {
       toolsCount: it.meta?.toolsCount,
     });
   }
-  // Backfill any curated toolkits the list endpoint omitted (e.g. MCP-only
-  // toolkits like granola_mcp that don't appear in the paginated catalog).
   await Promise.all(
     CURATED_TOOLKITS.filter((t) => !out.has(t.slug)).map(async (t) => {
       try {
@@ -194,25 +181,13 @@ export async function listToolkitSlugsWithAuthConfig(): Promise<Set<string>> {
     return new Set();
   }
 }
-
-// Cache of extracted account identities keyed by connection ID — avoids re-fetching
-// the full connection record (needed when the list endpoint omits `state`).
 const identityCache = new Map<string, { at: number; identity: AccountIdentity }>();
 const IDENTITY_TTL_MS = 15 * 60 * 1000;
-
-// Composio redacts access_tokens + id_tokens in API responses, so we can't
-// call the provider's userinfo endpoint directly. Instead we execute the
-// toolkit's own "who am I" tool through Composio, which injects real creds.
 interface WhoAmITool {
   tool: string;
   arguments: Record<string, unknown>;
   parse: (data: Record<string, unknown>) => Partial<AccountIdentity>;
 }
-
-// Common profile-shape parser. Handles the usual field names REST APIs return
-// for `/me`-style endpoints (email / login / name / avatar), plus one level
-// of nesting (`user.email`, `viewer.name`, etc.). Tolerates misses silently —
-// fallback chain in getIdentityFor handles missing profile helpers.
 function genericProfileParse(d: Record<string, unknown>): Partial<AccountIdentity> {
   const first = (...candidates: unknown[]): string | undefined => {
     for (const c of candidates) {
@@ -279,17 +254,9 @@ async function fetchToolkitIdentity(
   if (!spec) return {};
   try {
     const result = await composio.tools.execute(spec.tool, {
-      userId: boopUserId(),
-      // Without this, Composio picks the user's *default* connection for the
-      // toolkit, so every Gmail row in the UI ends up labeled with the same
-      // (newest) email — even when distinct accounts are connected.
+      userId: kizunaUserId(),
       ...(connectedAccountId ? { connectedAccountId } : {}),
       arguments: spec.arguments,
-      // Composio's tools.execute requires a pinned toolkit version OR this
-      // flag. We skip pinning so a toolkit bump doesn't break identity lookup
-      // silently — missed fields fall through to the identityCache/alias
-      // fallback chain in getIdentityFor. Revisit if Composio deprecates the
-      // flag.
       dangerouslySkipVersionCheck: true,
     });
     if (!result.successful || !result.data) return {};
@@ -331,7 +298,7 @@ export async function listConnectedToolkits(): Promise<ConnectedToolkit[]> {
   const composio = getComposio();
   if (!composio) return [];
   try {
-    const resp = await composio.connectedAccounts.list({ userIds: [boopUserId()] });
+    const resp = await composio.connectedAccounts.list({ userIds: [kizunaUserId()] });
     const enriched = await Promise.all(
       resp.items.map(async (it) => {
         const seed = extractAccountIdentity(
@@ -386,10 +353,6 @@ interface AccountIdentity {
   avatarUrl?: string;
   label?: string;
 }
-
-// Composio's connected-account `state` blob is shaped differently per toolkit.
-// Pull out any human-readable identity we can find — OAuth id_token JWTs (Google et al.)
-// carry email/name/picture; other toolkits stash things like `shop`, `subdomain`, `account_id`.
 function extractAccountIdentity(state: unknown, data: unknown): AccountIdentity {
   const s = (state && typeof state === "object" ? (state as Record<string, unknown>) : {}) ?? {};
   const d = (data && typeof data === "object" ? (data as Record<string, unknown>) : {}) ?? {};
@@ -404,8 +367,6 @@ function extractAccountIdentity(state: unknown, data: unknown): AccountIdentity 
       out.avatarUrl = str(payload.picture);
     }
   }
-
-  // Some toolkits surface a user_info / profile blob directly.
   for (const src of [d, s]) {
     const profile =
       (src.user_info && typeof src.user_info === "object" ? (src.user_info as Record<string, unknown>) : null) ??
@@ -419,8 +380,6 @@ function extractAccountIdentity(state: unknown, data: unknown): AccountIdentity 
     out.name = out.name ?? str(src.name) ?? str(src.display_name);
     out.avatarUrl = out.avatarUrl ?? str(src.avatar_url) ?? str(src.picture);
   }
-
-  // Toolkit-specific scalar fields that identify the account without being a person.
   const fallback =
     str(s.shop) ??
     str(s.subdomain) ??
@@ -462,12 +421,6 @@ export async function authorizeToolkit(
 ): Promise<{ redirectUrl: string | null; connectionId: string }> {
   const composio = getComposio();
   if (!composio) throw new Error("COMPOSIO_API_KEY not set");
-
-  // 1. Find or create an auth config for the toolkit. session.authorize doesn't
-  //    auto-discover or auto-create — we have to pass an authConfigId explicitly
-  //    to connectedAccounts.initiate. That's why a manually-added BYO config in
-  //    the dashboard would still trip "require auth configs but none exist" on
-  //    the previous session.authorize-based code path.
   let authConfigId: string;
   const existingConfig = (await composio.authConfigs.list({ toolkit: slug })).items[0];
   if (existingConfig) {
@@ -480,9 +433,6 @@ export async function authorizeToolkit(
       });
       authConfigId = created.id;
     } catch (err) {
-      // 400 here means Composio doesn't host a managed OAuth app for this toolkit —
-      // user has to register their own at the toolkit's dev portal and add it via
-      // the Composio Dashboard (Toolkits → search → Add to project).
       const status = (err as { status?: number })?.status;
       if (status === 400) {
         throw new ComposioNeedsAuthConfigError(slug, String(err));
@@ -490,13 +440,10 @@ export async function authorizeToolkit(
       throw err;
     }
   }
-
-  // 2. Initiate the connection. allowMultiple if there's already an active connection
-  //    so we add another account instead of replacing.
   const existing = (await listConnectedToolkits()).filter(
     (c) => c.slug === slug && c.status === "ACTIVE",
   );
-  const conn = await composio.connectedAccounts.initiate(boopUserId(), authConfigId, {
+  const conn = await composio.connectedAccounts.initiate(kizunaUserId(), authConfigId, {
     ...(existing.length > 0 ? { allowMultiple: true } : {}),
     ...(opts?.callbackUrl ? { callbackUrl: opts.callbackUrl } : {}),
     ...(opts?.alias ? { alias: opts.alias } : {}),
@@ -520,18 +467,11 @@ export function buildComposioIntegrationModule(slug: string): IntegrationModule 
       if (!composio) {
         throw new Error(`[composio] cannot build ${slug} — COMPOSIO_API_KEY not set`);
       }
-      // If the user has 2+ active connections for this toolkit, force Composio to
-      // require explicit account selection per tool call — otherwise it silently
-      // picks the default account.
       const activeCount = (await listConnectedToolkits()).filter(
         (c) => c.slug === slug && c.status === "ACTIVE",
       ).length;
-      // Look up the auth config explicitly. Without this, composio.create() tries
-      // to auto-create one and 400s for BYO toolkits (Twitter etc.) that don't
-      // have a managed OAuth app available — error message even names the fix:
-      // "Please specify them in auth_configs."
       const authConfig = (await composio.authConfigs.list({ toolkit: slug })).items[0];
-      const session = await composio.create(boopUserId(), {
+      const session = await composio.create(kizunaUserId(), {
         toolkits: [slug],
         manageConnections: false,
         ...(authConfig ? { authConfigs: { [slug]: authConfig.id } } : {}),

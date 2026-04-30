@@ -56,7 +56,7 @@ export function MemoryPanel({ isDark }: { isDark: boolean }) {
 
   return (
     <div className="editorial-panel-shell flex flex-col h-full overflow-hidden">
-      {/* Toolbar */}
+      {}
       <div
         className="shrink-0 border-b border-[var(--hairline)] px-6 py-4 flex flex-wrap items-center gap-3 bg-[var(--canvas)]"
       >

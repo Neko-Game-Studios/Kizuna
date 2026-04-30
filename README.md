@@ -1,17 +1,17 @@
 <p align="center">
-  <img src="assets/boop.gif" alt="Boop" width="220" />
+  <img src="assets/kizuna-logo.svg" alt="Kizuna" width="220" />
 </p>
 
-# Boop
+# Kizuna
 
 An iMessage-based personal agent built on top of the [Claude Agent SDK](https://docs.claude.com/en/api/agent-sdk/overview).
 
-📺 **Watch the walkthrough:** [YouTube — How I built Boop](https://youtu.be/ZpmKjDDbqHs)
+📺 **Watch the walkthrough:** [YouTube — How I built Kizuna](https://youtu.be/ZpmKjDDbqHs)
 
 <p align="center">
-  <img src="assets/imessage.jpg" alt="Boop replying inside iMessage" width="320" />
+  <img src="assets/imessage.jpg" alt="Kizuna replying inside iMessage" width="320" />
   <br>
-  <sub><em>Boop in action — text it like a person, get back an answer with full context.</em></sub>
+  <sub><em>Kizuna in action — text it like a person, get back an answer with full context.</em></sub>
 </p>
 
 > **This is a starting point, not a finished product.**
@@ -46,30 +46,36 @@ Built on:
 - **Draft-and-send** — any external action stages a draft first; the agent only commits when the user confirms.
 - **Heartbeat + retry** — stuck agents auto-fail, debug dashboard can retry.
 - **Composio-powered integrations** — one API key unlocks 1000+ toolkits. Connect Gmail, Slack, GitHub, Linear, Notion, Drive, HubSpot, etc. with a click from the debug dashboard. Composio handles OAuth + token refresh.
-- **Debug dashboard** (React + Vite) with a Boop mascot — Dashboard (spend + tokens + agent status), Agents (timeline + integration logos), Automations, Memory (table + force-directed graph), Events, Connections.
+- **Debug dashboard** (React + Vite) with a Kizuna mascot — Dashboard (spend + tokens + agent status), Agents (timeline + integration logos), Automations, Memory (table + force-directed graph), Events, Connections.
 - **Convex** for persistence — real-time, typed, free tier.
 - **Uses your Claude Code subscription** — no separate Anthropic API key required.
 
 <p align="center">
-  <img src="assets/agents-view.jpg" alt="Agents view in the Boop debug dashboard" width="900" />
+  <img src="assets/dashboard-readme.png" alt="Kizuna debug dashboard" width="900" />
+  <br>
+  <sub><em>Debug dashboard — live overview, agents, memory, events, automations, and connections in the Kizuna UI.</em></sub>
+</p>
+
+<p align="center">
+  <img src="assets/agents-view.jpg" alt="Agents view in the Kizuna debug dashboard" width="900" />
   <br>
   <sub><em>Agents tab — every spawned sub-agent with status, cost, tokens, turns, runtime, and the integrations it touched.</em></sub>
 </p>
 
 <p align="center">
-  <img src="assets/automations.jpg" alt="Automations view in the Boop debug dashboard" width="900" />
+  <img src="assets/automations.jpg" alt="Automations view in the Kizuna debug dashboard" width="900" />
   <br>
   <sub><em>Automations tab — schedule recurring jobs from a text ("every morning at 8 summarize my calendar") and watch them run.</em></sub>
 </p>
 
 <p align="center">
-  <img src="assets/memory-graph.jpg" alt="Memory graph in the Boop debug dashboard" width="900" />
+  <img src="assets/memory-graph.jpg" alt="Memory graph in the Kizuna debug dashboard" width="900" />
   <br>
   <sub><em>Memory tab — force-directed graph of clustered memories across short, long, and permanent tiers. Tabular view also available.</em></sub>
 </p>
 
 <p align="center">
-  <img src="assets/connections.jpg" alt="Connections view in the Boop debug dashboard" width="900" />
+  <img src="assets/connections.jpg" alt="Connections view in the Kizuna debug dashboard" width="900" />
   <br>
   <sub><em>Connections tab — Composio toolkits with OAuth handled for you. Click Connect and the agent can use it on the next message.</em></sub>
 </p>
@@ -84,7 +90,7 @@ Built on:
 
 ---
 
-## Why is it named Boop?
+## Why is it named Kizuna?
 
 <p align="center">
   <img src="assets/luna.jpeg" alt="Luna" width="220" />
@@ -92,7 +98,7 @@ Built on:
   <sub><em>Luna, the inspiration.</em></sub>
 </p>
 
-Boop is meant to be a proactive agent — one that nudges you over iMessage with reminders, drafts, and little follow-ups. A small "boop" whenever it has something for you.
+Kizuna is meant to be a proactive agent — one that nudges you over iMessage with reminders, drafts, and little follow-ups. A small "kizuna" whenever it has something for you.
 
 And it's named after my dog, Luna, who gives plenty of them.
 
@@ -128,8 +134,8 @@ You need accounts for these. Keep the tabs open — setup will ask for credentia
 
 ```bash
 # 1. Clone + install
-git clone https://github.com/raroque/boop-agent.git
-cd boop-agent
+git clone https://github.com/raroque/kizuna-agent.git
+cd kizuna-agent
 npm install
 
 # 2. Install Claude Code (one-time, global) and sign in
@@ -176,7 +182,7 @@ Text your Sendblue-provisioned number from a **different** phone. The agent repl
 
 ## How the Sendblue integration works
 
-Boop uses the [Sendblue CLI](https://github.com/sendblue-api/sendblue-cli) (`@sendblue/cli`) to eliminate almost all manual dashboard work. Three NPM scripts wrap it:
+Kizuna uses the [Sendblue CLI](https://github.com/sendblue-api/sendblue-cli) (`@sendblue/cli`) to eliminate almost all manual dashboard work. Three NPM scripts wrap it:
 
 | Command | What it does |
 |---|---|
@@ -208,7 +214,7 @@ The banner will look like:
 
 ```
 ════════════════════════════════════════════════════════════════════
-  Boop is ready — ngrok tunnel is live  (webhook auto-registered).
+  Kizuna is ready — ngrok tunnel is live  (webhook auto-registered).
 
   🐶 Debug dashboard (click me):   http://localhost:5173
   🌐 Public URL:                   https://abc123.ngrok-free.app
@@ -307,19 +313,19 @@ Deep dive: [ARCHITECTURE.md](./ARCHITECTURE.md). Adding your own tools: [INTEGRA
 
 ## Skills
 
-Skills are reusable playbooks — `SKILL.md` files under `.claude/skills/` that teach the execution agent how to do a specific kind of task (write a YouTube script, draft a cold email, plan a trip, etc.).
+Skills are reusable playbooks — `SKILL.md` files under `.claude/skills/` and mirrored into `.agents/skills/` so the Claude and Codex implementations both see the same playbooks.
 
-**How the Agent SDK handles them:** every `.claude/skills/*/SKILL.md` is loaded when the execution agent boots, and each skill's `description` gets injected into the agent's system prompt along with an instruction to pick the relevant one for the current task. You do **not** select skills per spawn — the agent picks based on which description matches. Only descriptions load upfront; the full SKILL.md body is pulled into context only when the agent actually invokes the skill, so adding more skills is cheap.
+**How the agent handles them:** every mirrored skill file is loaded when the execution agent boots, and each skill's `description` gets injected into the agent's system prompt along with an instruction to pick the relevant one for the current task. You do **not** select skills per spawn — the agent picks based on which description matches. Only descriptions load upfront; the full SKILL.md body is pulled into context only when the agent actually invokes the skill, so adding more skills is cheap.
 
 The SDK is pretty smart about picking the right skill as long as your `description` is specific and front-loads the trigger phrases ("Use when the user asks to write a video script, turn research into a YouTube video…"). Vague descriptions = missed invocations.
 
 Wiring (in `server/execution-agent.ts`):
-- `settingSources: ["project"]` — tells the SDK to load `.claude/skills/`
+- `settingSources: ["project"]` — tells the SDK to load the project skill root
 - `"Skill"` in `allowedTools` — enables the Skill tool
 
 Only the **execution agent** loads skills. The dispatcher (interaction-agent) stays in SDK isolation mode, so it never sees them — which is correct, because the dispatcher should never do work, only route.
 
-**To add a skill:** create `.claude/skills/<kebab-name>/SKILL.md`:
+**To add a skill:** create `.claude/skills/<kebab-name>/SKILL.md` and mirror it into `.agents/skills/<kebab-name>/SKILL.md`:
 
 ```yaml
 ---
@@ -332,7 +338,7 @@ description: Write a tight, retention-focused YouTube script from a topic or out
 
 There's a soft budget (~15k chars by default, via `SLASH_COMMAND_TOOL_CHAR_BUDGET`) for the combined skill-description block in context — if you end up with many skills, keep descriptions sharp so none get truncated.
 
-Example included: `.claude/skills/youtube-script-writer/`.
+Example included: `.claude/skills/youtube-script-writer/` and `.agents/skills/youtube-script-writer/`.
 
 ---
 
@@ -357,20 +363,20 @@ Everything lives in `.env.local` (auto-created by `npm run setup`). See `.env.ex
 | `CONVEX_URL` / `VITE_CONVEX_URL` | yes | Convex deployment URL. Written by `npx convex dev`. |
 | `SENDBLUE_API_KEY` / `SENDBLUE_API_SECRET` | yes | From your Sendblue dashboard. |
 | `SENDBLUE_FROM_NUMBER` | yes | Your Sendblue-provisioned number. |
-| `BOOP_MODEL` | no | Default `claude-sonnet-4-6`. Used as the fallback when no runtime override is set. The user can switch the model at runtime from iMessage ("use opus", "switch to sonnet") via the `set_model` self-tool — that override is stored in the Convex `settings` table and takes precedence over this env var. |
-| `BOOP_UPSTREAM_CHECK` | no | Set to `false` to disable the new-version banner on `npm run dev`. Default: on. |
+| `KIZUNA_MODEL` | no | Default `claude-sonnet-4-6`. Used as the fallback when no runtime override is set. The user can switch the model at runtime from iMessage ("use codex", "switch to sonnet") via the `set_model` self-tool — that override is stored in the Convex `settings` table and takes precedence over this env var. |
+| `KIZUNA_UPSTREAM_CHECK` | no | Set to `false` to disable the new-version banner on `npm run dev`. Default: on. |
 | `PORT` | no | Default `3456`. |
 | `PUBLIC_URL` | no | Base URL used in the Sendblue webhook. Composio handles its own OAuth callbacks on `platform.composio.dev`, so this is just for inbound iMessage. |
 | `VOYAGE_API_KEY` **or** `OPENAI_API_KEY` | optional | Unlocks vector recall. Falls back to substring. |
 | `COMPOSIO_API_KEY` | optional | Enables integrations. Without it, plain chat + memory + automations still work. Get one at [app.composio.dev/developers](https://app.composio.dev/developers?utm_source=chris&utm_medium=youtube&utm_campaign=collab). |
-| `COMPOSIO_USER_ID` | optional | Stable user id Composio keys connections under. Defaults to `boop-default`. |
+| `COMPOSIO_USER_ID` | optional | Stable user id Composio keys connections under. Defaults to `kizuna-default`. |
 | `ANTHROPIC_API_KEY` | optional | Bypass the Claude Code subscription. |
 
 ---
 
 ## Integrations, via Composio
 
-Boop outsources 3rd-party service integrations to [Composio](https://composio.dev/?utm_source=chris&utm_medium=youtube&utm_campaign=collab). One API key unlocks ~1000 toolkits (Gmail, Slack, GitHub, Linear, Notion, Drive, Stripe, Supabase, HubSpot, Salesforce, Granola, and so on). Composio hosts the OAuth apps, manages token refresh, and exposes every toolkit as a set of Claude-ready tools. Boop never sees an access token.
+Kizuna outsources 3rd-party service integrations to [Composio](https://composio.dev/?utm_source=chris&utm_medium=youtube&utm_campaign=collab). One API key unlocks ~1000 toolkits (Gmail, Slack, GitHub, Linear, Notion, Drive, Stripe, Supabase, HubSpot, Salesforce, Granola, and so on). Composio hosts the OAuth apps, manages token refresh, and exposes every toolkit as a set of Claude-ready tools. Kizuna never sees an access token.
 
 ### Quickstart
 
@@ -386,14 +392,14 @@ After a successful connect, the agent can use that toolkit immediately — no re
 
 ### How it wires in
 
-Boop keeps the dispatcher / executor split intact. Composio sits under the executor:
+Kizuna keeps the dispatcher / executor split intact. Composio sits under the executor:
 
 ```
 interaction-agent:  spawn_agent(task, integrations: ["gmail", "slack"])
                               │
                               ▼
 execution-agent:    for each slug, open a Composio session scoped to that toolkit:
-                      composio.create(BOOP_USER, { toolkits: ["gmail"] })
+                      composio.create(KIZUNA_USER, { toolkits: ["gmail"] })
                       session.tools()          ← returns only Gmail tools
                               │
                               ▼
@@ -416,9 +422,7 @@ Key properties:
 The ~20 toolkit catalog is hand-picked in `server/composio.ts:CURATED_TOOLKITS`. To surface another:
 
 ```ts
-// server/composio.ts
 export const CURATED_TOOLKITS: CuratedToolkit[] = [
-  // …existing entries…
   { slug: "airtable", displayName: "Airtable", authMode: "managed" },
 ];
 ```
@@ -433,24 +437,24 @@ Every LLM call — dispatcher turn, execution-agent run, memory extraction, cons
 
 ### A note on runaway cost
 
-Boop's `query()` calls don't currently set `maxTurns` or `maxBudgetUsd`. Those are hard stops the SDK exposes — set them and the agent aborts once the threshold hits, with whatever partial result it has.
+Kizuna's `query()` calls don't currently set `maxTurns` or `maxBudgetUsd`. Those are hard stops the SDK exposes — set them and the agent aborts once the threshold hits, with whatever partial result it has.
 
 Kept as-is intentionally for a single-user personal agent: every task is scoped tight (spawned by the dispatcher with a specific task string + a small integration list), integrations are Composio-scoped per spawn so the tool surface stays small, and the existing 15-minute heartbeat (`server/heartbeat.ts`) marks any long-running agent as `failed` and aborts it. In practice execution agents complete in under 60 seconds.
 
-If you deploy Boop in a higher-throughput setting, or hand it integrations that allow looping (webhooks, scrapers), you probably want to set `maxTurns: 20` and `maxBudgetUsd: 2.00` on the `query()` call in `server/execution-agent.ts` as a belt-and-suspenders cap.
+If you deploy Kizuna in a higher-throughput setting, or hand it integrations that allow looping (webhooks, scrapers), you probably want to set `maxTurns: 20` and `maxBudgetUsd: 2.00` on the `query()` call in `server/execution-agent.ts` as a belt-and-suspenders cap.
 
 ### Keeping it in sync
 
 Deeper dive — auth modes, toolkit scoping internals, multi-account flow, per-connection identity: [INTEGRATIONS.md](./INTEGRATIONS.md).
 
-Upgrade path when upstream ships changes: run `/upgrade-boop` inside `claude` (the skill under `.claude/skills/upgrade-boop/`) — previews diffs, backs up, merges, surfaces `[BREAKING]` CHANGELOG entries. See [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution rules + the CHANGELOG / migration-skill conventions.
+Upgrade path when upstream ships changes: run `/upgrade-kizuna` inside `claude` (the skill under `.claude/skills/upgrade-kizuna/`) — previews diffs, backs up, merges, surfaces `[BREAKING]` CHANGELOG entries. See [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution rules + the CHANGELOG / migration-skill conventions.
 
 ---
 
 ## Project layout
 
 ```
-boop-agent/
+kizuna-agent/
 ├── server/
 │   ├── index.ts                   # Express + WS + HTTP routes
 │   ├── sendblue.ts                # iMessage webhook, reply, typing indicator
@@ -503,16 +507,16 @@ boop-agent/
 
 ## Upgrading
 
-Boop is a fork-and-own template. You customize your copy freely — system prompts, memory thresholds, extra tools — and pull upstream fixes in on your own schedule.
+Kizuna is a fork-and-own template. You customize your copy freely — system prompts, memory thresholds, extra tools — and pull upstream fixes in on your own schedule.
 
 The intended path is **Claude Code-driven**, modeled on NanoClaw:
 
 ```bash
 claude                 # inside your repo
-/upgrade-boop
+/upgrade-kizuna
 ```
 
-`/upgrade-boop` is a skill in `.claude/skills/upgrade-boop/SKILL.md`. It:
+`/upgrade-kizuna` is a skill in `.claude/skills/upgrade-kizuna/SKILL.md`. It:
 
 1. Refuses to run with a dirty working tree.
 2. Creates a timestamped rollback tag.
@@ -525,14 +529,14 @@ claude                 # inside your repo
 Plain git works too, if you'd rather:
 
 ```bash
-git remote add upstream https://github.com/chris/boop-agent.git    # one-time
+git remote add upstream https://github.com/chris/kizuna-agent.git    # one-time
 git fetch upstream
 git merge upstream/main      # or: git rebase upstream/main
 ```
 
 ### New-version notifications
 
-Every time you run `npm run dev`, a small background check (`scripts/check-upstream.mjs`) asks your `upstream` remote if there are new commits. If there are, you'll see a banner up top with the count and a reminder to run `/upgrade-boop`. If you're up to date, or the check fails for any reason (offline, no `upstream` remote, timeout), it stays silent.
+Every time you run `npm run dev`, a small background check (`scripts/check-upstream.mjs`) asks your `upstream` remote if there are new commits. If there are, you'll see a banner up top with the count and a reminder to run `/upgrade-kizuna`. If you're up to date, or the check fails for any reason (offline, no `upstream` remote, timeout), it stays silent.
 
 Behavior at a glance:
 
@@ -543,12 +547,12 @@ Behavior at a glance:
 
 To turn it off:
 
-- **Env var:** add `BOOP_UPSTREAM_CHECK=false` to `.env.local`
+- **Env var:** add `KIZUNA_UPSTREAM_CHECK=false` to `.env.local`
 - **Or comment it out:** the call lives in `scripts/dev.mjs` — the `spawn("node", ["scripts/check-upstream.mjs"], ...)` block. Delete or comment that block and the check never runs.
 
 ### CHANGELOG
 
-Every release lists additions under [CHANGELOG.md](./CHANGELOG.md), with `[BREAKING]` prefixes for anything that requires action. `/upgrade-boop` parses that format automatically.
+Every release lists additions under [CHANGELOG.md](./CHANGELOG.md), with `[BREAKING]` prefixes for anything that requires action. `/upgrade-kizuna` parses that format automatically.
 
 ---
 

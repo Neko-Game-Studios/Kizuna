@@ -4,8 +4,6 @@ import { convex } from "./convex-client.js";
 const MODEL_KEY = "model";
 const MODEL_TTL_MS = 30 * 1000;
 let cached: { at: number; value: string } | null = null;
-
-// User-friendly aliases resolved to Codex/OpenAI model IDs.
 export const MODEL_ALIASES: Record<string, string> = {
   auto: "auto",
   default: "auto",
@@ -28,7 +26,7 @@ export function resolveModelInput(input: string): string | null {
 }
 
 function envFallback(): string {
-  return process.env.BOOP_MODEL ?? "auto";
+  return process.env.KIZUNA_MODEL ?? "auto";
 }
 
 export async function getRuntimeModel(): Promise<string> {
@@ -39,10 +37,6 @@ export async function getRuntimeModel(): Promise<string> {
   } catch (err) {
     console.warn("[runtime-config] settings:get failed", err);
   }
-  // Re-validate even though set_model writes through resolveModelInput — the
-  // settings table is also writable via the Convex dashboard and other
-  // mutations, and a bad value here would surface as an opaque model error on
-  // the next turn instead of falling back gracefully.
   const final = stored && KNOWN_MODELS.has(stored) ? stored : envFallback();
   cached = { at: Date.now(), value: final };
   return final;

@@ -145,7 +145,7 @@ export function ChatPanel({ isDark, onPrintingChange }: Props) {
             <div key={m._id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[78%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                 m.role === "user"
-                  ? "bg-[var(--ink)] text-white"
+                  ? "bg-[var(--primary)] text-white"
                   : "bg-[var(--surface-soft)] text-[var(--body)] border border-[var(--hairline)]"
               }`}>
                 {m.content}

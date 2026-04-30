@@ -29,7 +29,7 @@ async function main() {
   app.use(express.json({ limit: "2mb" }));
 
   app.get("/health", (_req, res) => {
-    res.json({ ok: true, service: "boop-agent" });
+    res.json({ ok: true, service: "kizuna-agent" });
   });
 
   app.use("/composio", createComposioRouter());
@@ -42,7 +42,6 @@ async function main() {
   app.post("/consolidate", async (_req, res) => {
     try {
       const { runConsolidation } = await import("./consolidation.js");
-      // Fire-and-forget so the HTTP request returns immediately.
       runConsolidation("manual").catch((err) =>
         console.error("[consolidation] manual run failed", err),
       );
@@ -60,8 +59,6 @@ async function main() {
     }
     res.json(result);
   });
-
-  // Chat endpoint for local testing and the debug dashboard
   app.post("/chat", async (req, res) => {
     const { conversationId, content } = req.body ?? {};
     if (!conversationId || !content) {
@@ -91,7 +88,7 @@ async function main() {
 
   const port = Number(process.env.PORT ?? 3456);
   server.listen(port, () => {
-    console.log(`boop-agent server listening on :${port}`);
+    console.log(`kizuna-agent server listening on :${port}`);
     console.log(`  health      GET  http://localhost:${port}/health`);
     console.log(`  chat        POST http://localhost:${port}/chat`);
     console.log(`  telegram    polling via TELEGRAM_BOT_TOKEN`);

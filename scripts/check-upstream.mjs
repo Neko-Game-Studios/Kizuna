@@ -1,16 +1,4 @@
 #!/usr/bin/env node
-// Background check that nudges the user when upstream has new commits.
-// Runs in parallel with dev.mjs startup; silent on no-op or failure.
-//
-// Opt out: set BOOP_UPSTREAM_CHECK=false in .env.local, or comment out the
-// `spawn("node", ["scripts/check-upstream.mjs"], ...)` block in scripts/dev.mjs.
-//
-// Behavior matrix:
-//   - BOOP_UPSTREAM_CHECK=false → silent (disabled)
-//   - upstream remote + new commits → banner w/ count + /upgrade-boop instruction
-//   - upstream remote, up to date   → silent
-//   - no upstream + forked origin   → one-line hint on how to add upstream
-//   - no upstream + origin IS upstream (raroque/boop-agent) → silent
 
 import { spawn, execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -20,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
 
-const CANONICAL_REGEX = /raroque\/boop-agent(\.git)?$/;
+const CANONICAL_REGEX = /raroque\/kizuna-agent(\.git)?$/;
 const FETCH_TIMEOUT_MS = 5000;
 
 const C = {
@@ -70,8 +58,8 @@ async function fetchUpstream() {
 
 function printBehindBanner(ahead) {
   const pad = (s, n) => s + " ".repeat(Math.max(0, n - stripAnsi(s).length));
-  const line = `📦  ${ahead} new commit${ahead === 1 ? "" : "s"} upstream on raroque/boop-agent`;
-  const cmd = `${C.bold}/upgrade-boop${C.reset}${C.yellow}`;
+  const line = `📦  ${ahead} new commit${ahead === 1 ? "" : "s"} upstream on raroque/kizuna-agent`;
+  const cmd = `${C.bold}/upgrade-kizuna${C.reset}${C.yellow}`;
   console.log(`
 ${C.yellow}╭──────────────────────────────────────────────────────────────╮
 │ ${pad(line, 60)} │
@@ -92,14 +80,11 @@ function stripAnsi(s) {
 function printNoUpstreamHint() {
   console.log(
     `${C.dim}  ℹ Tip: set up upstream for new-version checks on \`npm run dev\`:
-     ${C.bold}git remote add upstream https://github.com/raroque/boop-agent.git${C.reset}${C.dim}
-     Then \`claude\` → \`/upgrade-boop\` whenever upstream has changes.${C.reset}
+     ${C.bold}git remote add upstream https://github.com/raroque/kizuna-agent.git${C.reset}${C.dim}
+     Then \`claude\` → \`/upgrade-kizuna\` whenever upstream has changes.${C.reset}
 `,
   );
 }
-
-// Opt-out via env var. Reads .env.local the same way dev.mjs does so users
-// don't have to export variables in their shell to disable the check.
 function readEnvLocal() {
   const p = resolve(root, ".env.local");
   if (!existsSync(p)) return {};
@@ -113,7 +98,7 @@ function readEnvLocal() {
 
 const envFromFile = readEnvLocal();
 const upstreamCheckEnabled =
-  (process.env.BOOP_UPSTREAM_CHECK ?? envFromFile.BOOP_UPSTREAM_CHECK ?? "true") !== "false";
+  (process.env.KIZUNA_UPSTREAM_CHECK ?? envFromFile.KIZUNA_UPSTREAM_CHECK ?? "true") !== "false";
 if (!upstreamCheckEnabled) process.exit(0);
 
 (async () => {
@@ -121,8 +106,6 @@ if (!upstreamCheckEnabled) process.exit(0);
 
   if (!upstreamUrl) {
     const originUrl = tryExec("git remote get-url origin") || "";
-    // Canonical clone (rare) or fork-with-no-upstream (common). Only nag the
-    // latter — if this user IS the upstream they have nothing to pull.
     if (!CANONICAL_REGEX.test(originUrl)) {
       printNoUpstreamHint();
     }
@@ -130,16 +113,15 @@ if (!upstreamCheckEnabled) process.exit(0);
   }
 
   const fetched = await fetchUpstream();
-  if (!fetched) return; // offline, perms, network — fail open
+  if (!fetched) return;
 
   const upstreamHead = tryExec("git rev-parse upstream/main");
   if (!upstreamHead) return;
 
-  if (isAncestor(upstreamHead)) return; // already have it
+  if (isAncestor(upstreamHead)) return;
 
   const ahead = parseInt(tryExec(`git rev-list --count HEAD..${upstreamHead}`) || "0", 10);
   if (!ahead) return;
   printBehindBanner(ahead);
 })().catch(() => {
-  /* never block startup on failure */
 });

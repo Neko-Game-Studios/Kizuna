@@ -1,6 +1,6 @@
 # Architecture
 
-boop-agent is a small distributed system disguised as a single-server app. Four moving parts, each doing one job.
+kizuna-agent is a small distributed system disguised as a single-server app. Four moving parts, each doing one job.
 
 ## The four parts
 
@@ -33,9 +33,9 @@ The front door. One instance per user turn. Its job is to **decide**, not to do.
 
 - Reads the user's message + last 10 turns from Convex.
 - Has three tools via two MCP servers it owns:
-  - `boop-memory.recall(query)` — pull relevant memories.
-  - `boop-memory.write_memory(content, segment, importance, tier?)` — persist a durable fact.
-  - `boop-spawn.spawn_agent(task, integrations[], name?)` — kick off an execution agent.
+  - `kizuna-memory.recall(query)` — pull relevant memories.
+  - `kizuna-memory.write_memory(content, segment, importance, tier?)` — persist a durable fact.
+  - `kizuna-spawn.spawn_agent(task, integrations[], name?)` — kick off an execution agent.
 - Its system prompt drills the DISPATCHER rule: answer directly for chit-chat, spawn an agent for real work.
 - Replies stream through Sendblue back to iMessage (markdown stripped, chunked to 2900 chars).
 
@@ -58,7 +58,7 @@ Three files, three jobs.
 - Tiers: `short` (decay 5%/day), `long` (2%/day), `permanent` (no decay).
 - Segments: `identity`, `preference`, `relationship`, `project`, `knowledge`, `context`.
 
-**`tools.ts`** — the `boop-memory` MCP server. `recall` and `write_memory`. Each call emits a `memoryEvents` row so you can watch it live in the dashboard.
+**`tools.ts`** — the `kizuna-memory` MCP server. `recall` and `write_memory`. Each call emits a `memoryEvents` row so you can watch it live in the dashboard.
 
 **`extract.ts`** — fires post-turn, **fire-and-forget**. Sends `(userMsg, assistantReply)` to a Haiku/Sonnet pass with an extraction prompt, parses JSON facts, writes each one. The model is told to prefer fewer, higher-quality facts over many trivial ones.
 
@@ -125,19 +125,19 @@ Keeps memory sharper over time instead of noisier. The full run is logged in `co
 
 ### 8. Integrations — Composio (`server/composio.ts`)
 
-Boop delegates all third-party integrations to [Composio](https://composio.dev/?utm_source=chris&utm_medium=youtube&utm_campaign=collab). One SDK, 1000+ toolkits, hosted auth.
+Kizuna delegates all third-party integrations to [Composio](https://composio.dev/?utm_source=chris&utm_medium=youtube&utm_campaign=collab). One SDK, 1000+ toolkits, hosted auth.
 
 Flow:
 1. User clicks **Connect** on a toolkit card in the debug dashboard's Connections tab.
 2. Frontend → `POST /composio/toolkits/:slug/authorize` → backend calls `session.authorize(slug)` and returns Composio's hosted `redirectUrl`.
 3. Popup opens the redirect URL. User authenticates. Composio stores the tokens on its side.
-4. Popup closes → frontend calls `POST /composio/refresh` → backend re-runs `registerComposioToolkits()` which iterates `connectedAccounts.list({ userIds: [boopUserId()] })` and registers each active toolkit as an `IntegrationModule` keyed by its slug.
+4. Popup closes → frontend calls `POST /composio/refresh` → backend re-runs `registerComposioToolkits()` which iterates `connectedAccounts.list({ userIds: [kizunaUserId()] })` and registers each active toolkit as an `IntegrationModule` keyed by its slug.
 5. `availableIntegrations()` now includes the new slug, so the dispatcher can spawn a sub-agent with it.
 
 On each spawn, `buildComposioIntegrationModule(slug).createServer()` opens a **fresh toolkit-scoped Composio session**:
 
 ```ts
-await composio.create(boopUserId(), {
+await composio.create(kizunaUserId(), {
   toolkits: [slug],            // scope — sub-agent only sees this toolkit's tools
   manageConnections: false,    // don't inject auth-management meta-tools
 });
@@ -154,7 +154,7 @@ HTTP routes (`server/composio-routes.ts`, mounted at `/composio`):
 
 Env:
 - `COMPOSIO_API_KEY` — required for integrations. Without it, plain chat + memory + automations still work.
-- `COMPOSIO_USER_ID` — optional; defaults to `boop-default` for single-tenant use.
+- `COMPOSIO_USER_ID` — optional; defaults to `kizuna-default` for single-tenant use.
 
 ---
 
@@ -223,6 +223,6 @@ Steps 6–7 run in parallel where safe. Step 8 is fire-and-forget — the user n
 - **Single-process scheduler.** The automation loop runs in-process. If you deploy multiple instances, you'll double-fire — add a lock in Convex or run a dedicated scheduler pod.
 - **No intelligence runs** (proactive context gathering) — the original had it, it's complex, and it's opinionated about what it watches. Add it if you want.
 - **No knowledge graph** — relationships between memories are represented via `supersedes` only, not a full graph.
-- **Skills library omitted** — too Boop-specific; write your own prompts/policies in `server/*-agent.ts` system prompts.
+- **Skills library omitted** — too Kizuna-specific; write your own prompts/policies in `server/*-agent.ts` system prompts.
 
 All of these are one-file additions. The point of the template is to give you the smallest surface that still actually works.

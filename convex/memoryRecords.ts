@@ -30,13 +30,9 @@ export const upsert = mutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
-
-    // Archive any memories this one supersedes. Must run on BOTH the insert
-    // and update paths — consolidation merges typically update an existing
-    // "keep" memory while archiving the ones it absorbed.
     if (args.supersedes?.length) {
       for (const sid of args.supersedes) {
-        if (sid === args.memoryId) continue; // never archive self
+        if (sid === args.memoryId) continue;
         const target = await ctx.db
           .query("memoryRecords")
           .withIndex("by_memory_id", (q) => q.eq("memoryId", sid))
@@ -134,11 +130,6 @@ export const search = query({
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
     const q = args.query.toLowerCase();
-    // Filter on the index BEFORE the 500 cap — otherwise archived/pruned
-    // records eat the budget and silently truncate the active set.
-    // order("desc") so the 500-cap favors recent records. Without it the
-    // index iterates oldest-first and a brand-new high-importance record
-    // past position 500 would never be seen.
     const active = await ctx.db
       .query("memoryRecords")
       .withIndex("by_lifecycle", (idx) => idx.eq("lifecycle", "active"))

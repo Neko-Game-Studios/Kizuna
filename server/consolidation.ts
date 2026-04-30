@@ -97,8 +97,8 @@ interface Challenge {
   severity: "low" | "medium" | "high";
 }
 
-const ADVERSARY_MODEL = process.env.BOOP_ADVERSARY_MODEL ?? "claude-haiku-4-5";
-const DEFAULT_MODEL = process.env.BOOP_MODEL ?? "claude-sonnet-4-6";
+const ADVERSARY_MODEL = process.env.KIZUNA_ADVERSARY_MODEL ?? "claude-haiku-4-5";
+const DEFAULT_MODEL = process.env.KIZUNA_MODEL ?? "claude-sonnet-4-6";
 
 interface Decision {
   proposalIndex: number;
@@ -201,17 +201,11 @@ export async function runConsolidation(trigger = "scheduled"): Promise<{
       .map((m) => {
         const ageDays = Math.round((Date.now() - m.createdAt) / 86400000);
         const prefix = `- [${m.memoryId}] (${m.tier}/${m.segment} i=${m.importance.toFixed(2)} age=${ageDays}d)`;
-        // Surface correction metadata inline so the LLM sees what was being
-        // corrected without having to infer it from content alone.
         let suffix = "";
         if (m.segment === "correction" && m.metadata) {
           try {
             const meta = JSON.parse(m.metadata) as { corrects?: string };
             if (meta.corrects) {
-              // Strip `]` and collapse whitespace so user-supplied text
-              // can't break the `[corrects: ...]` annotation format that
-              // proposer/adversary prompts rely on, and can't inject a
-              // fake second memory entry via embedded newlines.
               const safe = meta.corrects
                 .replace(/[\r\n]+/g, " ")
                 .replace(/\]/g, "")
@@ -220,7 +214,6 @@ export async function runConsolidation(trigger = "scheduled"): Promise<{
               if (safe) suffix = ` [corrects: ${safe}]`;
             }
           } catch {
-            /* metadata not JSON — ignore */
           }
         }
         return `${prefix} ${m.content}${suffix}`;

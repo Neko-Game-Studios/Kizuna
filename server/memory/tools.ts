@@ -17,7 +17,7 @@ const segmentEnum = z.enum([
 
 export function createMemoryMcp(conversationId: string) {
   return createSdkMcpServer({
-    name: "boop-memory",
+    name: "kizuna-memory",
     version: "0.1.0",
     tools: [
       tool(

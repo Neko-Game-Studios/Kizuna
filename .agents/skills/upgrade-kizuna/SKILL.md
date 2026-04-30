@@ -1,17 +1,17 @@
 ---
-name: upgrade-boop
-description: Pull upstream Boop changes into a customized fork. Previews, backs up, merges with conflict-aware resolution, validates, and surfaces breaking changes.
+name: upgrade-kizuna
+description: Pull upstream Kizuna changes into a customized fork. Previews, backs up, merges with conflict-aware resolution, validates, and surfaces breaking changes.
 ---
 
 # About
 
-Your Boop fork drifts from upstream as you customize it — system prompts tweaked, new automations, tuned memory thresholds, etc. This skill brings upstream changes in without blowing away those edits.
+Your Kizuna fork drifts from upstream as you customize it — system prompts tweaked, new automations, tuned memory thresholds, etc. This skill brings upstream changes in without blowing away those edits.
 
-Run `/upgrade-boop` inside the repo (from `claude`, not your normal shell).
+Run `/upgrade-kizuna` inside the repo (from `claude`, not your normal shell).
 
 ## How it works
 
-**Preflight:** refuses to touch anything with a dirty working tree. If the `upstream` remote is missing, adds it (default: `https://github.com/chris/boop-agent.git` — the skill will ask).
+**Preflight:** refuses to touch anything with a dirty working tree. If the `upstream` remote is missing, adds it (default: `https://github.com/chris/kizuna-agent.git` — the skill will ask).
 
 **Backup:** creates a timestamped rollback branch + tag before doing anything. Printed at the end so you can `git reset --hard` back.
 
@@ -54,7 +54,7 @@ If output is non-empty:
 - Tell the user to commit or stash first. Stop.
 
 Confirm remotes with `git remote -v`. If `upstream` is missing:
-- Ask the user for the upstream repo URL (default: `https://github.com/chris/boop-agent.git`).
+- Ask the user for the upstream repo URL (default: `https://github.com/chris/kizuna-agent.git`).
 - `git remote add upstream <url>`
 - `git fetch upstream --prune`
 

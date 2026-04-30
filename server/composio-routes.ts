@@ -35,7 +35,6 @@ export function createComposioRouter(): express.Router {
         arr.push(c);
         connectionsBySlug.set(c.slug, arr);
       }
-      // Stable ordering: oldest connection first.
       for (const arr of connectionsBySlug.values()) {
         arr.sort((a, b) => (a.createdAt ?? "").localeCompare(b.createdAt ?? ""));
       }
@@ -70,10 +69,6 @@ export function createComposioRouter(): express.Router {
         .filter(([slug]) => !CURATED_TOOLKITS.some((t) => t.slug === slug))
         .map(([slug, conns]) => {
           const m = meta.get(slug);
-          // Non-curated toolkit — we don't actually know its auth mode from
-          // here. Infer: if an auth config exists on this account, the user
-          // set it up themselves (BYO). Otherwise assume managed (it got
-          // connected without one, which only works for Composio-managed).
           const authMode: "managed" | "byo" = configured.has(slug) ? "byo" : "managed";
           return {
             slug,

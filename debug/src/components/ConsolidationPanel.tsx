@@ -264,8 +264,6 @@ function ConsolidationDetail({
   const runs = useQuery(api.consolidation.listRuns, { limit: 80 });
   const run = runs?.find((r: any) => r.runId === runId);
   const [allPhases, setAllPhases] = useState<LivePhase[]>(phases);
-
-  // Keep absorbing live phases that arrive while the detail is open
   useSocket((evt: SocketEvent) => {
     const data = evt.data as any;
     if (data?.runId !== runId) return;
@@ -397,7 +395,7 @@ function ConsolidationDetail({
       </div>
 
       <div className="flex-1 overflow-y-auto debug-scroll p-5 space-y-6">
-        {/* Pipeline timeline (live + historical) */}
+        {}
         <section>
           <div
             className={`text-[10px] font-semibold uppercase tracking-wider mb-3 ${muted}`}
@@ -464,7 +462,7 @@ function ConsolidationDetail({
           )}
         </section>
 
-        {/* Stored reasoning — proposals + decisions + applied */}
+        {}
         <ReasoningSection run={run} isDark={isDark} />
 
         {run.notes && (
@@ -494,7 +492,6 @@ function ReasoningSection({ run, isDark }: { run: any; isDark: boolean }) {
   try {
     details = run.details ? JSON.parse(run.details) : null;
   } catch {
-    /* invalid JSON */
   }
 
   if (!details || !details.proposals?.length) {
@@ -569,7 +566,7 @@ function ReasoningSection({ run, isDark }: { run: any; isDark: boolean }) {
                 </span>
               </div>
 
-              {/* Proposal body */}
+              {}
               <div className={`text-xs space-y-1 mono`}>
                 {p.type === "merge" && (
                   <>
@@ -616,7 +613,7 @@ function ReasoningSection({ run, isDark }: { run: any; isDark: boolean }) {
                 )}
               </div>
 
-              {/* Judge rationale */}
+              {}
               {d && (
                 <div
                   className={`mt-2 pt-2 border-t text-[11px] ${

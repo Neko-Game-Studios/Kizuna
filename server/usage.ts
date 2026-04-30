@@ -1,7 +1,6 @@
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 
 export interface UsageTotals {
-  /** Name of the model that consumed the most tokens. */
   model: string;
   inputTokens: number;
   outputTokens: number;
@@ -18,22 +17,6 @@ export const EMPTY_USAGE: UsageTotals = {
   cacheCreationTokens: 0,
   costUsd: 0,
 };
-
-/**
- * The SDK's result message has two cost-y fields:
- *   - msg.usage      → raw Anthropic usage for the FINAL turn only (snake_case)
- *   - msg.modelUsage → aggregate per-model across the whole query (camelCase)
- *
- * Always prefer modelUsage — msg.usage massively undercounts on tool-heavy runs.
- *
- * Note on the `model` field returned: msg.modelUsage can contain MULTIPLE models
- * per query because Claude Code CLI uses different models for different internal
- * sub-tasks within a single query() call (e.g. haiku for cheap routing + sonnet
- * for the main response). If you pass `requestedModel`, it's used as the reported
- * primary so the cost row reflects what the caller actually asked for. Otherwise
- * we fall back to whichever model consumed the most tokens — accurate by volume
- * but often misleading.
- */
 export function aggregateUsageFromResult(
   msg: Extract<SDKMessage, { type: "result" }>,
   requestedModel?: string,
@@ -65,10 +48,6 @@ export function aggregateUsageFromResult(
       fallbackModel = model;
     }
   }
-
-  // Prefer the requested model if the SDK confirmed usage for it; fall back to
-  // the heaviest-usage model only if the caller didn't pass one or the SDK
-  // routed entirely around it (rare).
   let reportedModel: string;
   if (requestedModel && matchesAnyKey(requestedModel, Object.keys(modelUsage))) {
     reportedModel = requestedModel;
@@ -88,9 +67,6 @@ export function aggregateUsageFromResult(
 
 function matchesAnyKey(requested: string, keys: string[]): boolean {
   if (keys.includes(requested)) return true;
-  // SDK may expand a short alias like "claude-sonnet-4-6" to a date-stamped
-  // full id like "claude-sonnet-4-6-20251101" in modelUsage keys. Prefix match
-  // covers both directions.
   return keys.some(
     (k) => k === requested || k.startsWith(requested) || requested.startsWith(k),
   );

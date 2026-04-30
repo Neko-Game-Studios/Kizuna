@@ -1,10 +1,3 @@
-/**
- * Thin embeddings wrapper. Prefers Voyage (Anthropic-recommended). Falls back to OpenAI.
- * Returns null if no provider is configured — callers should fall back to substring search.
- *
- * Both providers here produce 1024-dim vectors (matches the Convex vector index).
- */
-
 const VOYAGE_MODEL = "voyage-3";
 const OPENAI_MODEL = "text-embedding-3-large";
 const DIMENSIONS = 1024;

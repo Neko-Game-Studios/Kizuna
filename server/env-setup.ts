@@ -1,5 +1,3 @@
-// Loads .env.local (priority) then .env (fallback) from the project root.
-// Imported for side effects — must run before any module reads process.env.
 import { config } from "dotenv";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";

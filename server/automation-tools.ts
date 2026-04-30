@@ -13,7 +13,7 @@ export function createAutomationMcp(conversationId: string) {
   const integrationHint = availableIntegrations().join(", ") || "(none configured)";
 
   return createSdkMcpServer({
-    name: "boop-automations",
+    name: "kizuna-automations",
     version: "0.1.0",
     tools: [
       tool(

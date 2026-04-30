@@ -1,8 +1,4 @@
 import { query } from "./_generated/server";
-
-// Cap per-table scans so a long-lived install doesn't hit Convex's 16,384
-// .collect() ceiling and break the dashboard. Metrics reflect the most
-// recent N rows per table; `truncated` surfaces when we've hit the cap.
 const METRICS_SCAN_LIMIT = 5000;
 
 export const metrics = query({
@@ -21,8 +17,6 @@ export const metrics = query({
       automationRuns.length === METRICS_SCAN_LIMIT;
 
     const activeMem = memories.filter((m) => m.lifecycle === "active");
-
-    // Build daily buckets across all time so the chart has something to draw.
     const buckets = new Map<
       string,
       {

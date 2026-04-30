@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-// One command to run Kizuna Agent locally: server + convex + debug dashboard.
-// Prefixes each child's output so you can tell who's saying what.
 
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -123,7 +121,6 @@ const shutdown = (code = 0) => {
     try {
       c.kill();
     } catch {
-      /* ignore */
     }
   }
   setTimeout(() => process.exit(code), 500);

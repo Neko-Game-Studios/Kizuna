@@ -88,7 +88,6 @@ export async function tickAutomations(): Promise<void> {
   const now = Date.now();
   const due = all.filter((a) => a.nextRunAt !== undefined && a.nextRunAt <= now);
   for (const a of due) {
-    // fire-and-forget so one slow automation doesn't block others
     runAutomation({
       automationId: a.automationId,
       name: a.name,

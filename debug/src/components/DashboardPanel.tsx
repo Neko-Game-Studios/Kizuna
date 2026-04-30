@@ -296,9 +296,6 @@ function StatCard({
 }) {
   const [open, setOpen] = useState(false);
   const popRef = useRef<HTMLDivElement | null>(null);
-
-  // Close on outside click — keeps the popover from sticking when the user
-  // clicks elsewhere.
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {

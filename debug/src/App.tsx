@@ -64,9 +64,9 @@ const NAV: { id: View; label: string }[] = [
 
 function getStoredTheme(): Theme {
   try {
-    return (localStorage.getItem("kizuna-agent-theme") as Theme) || "light";
+    return (localStorage.getItem("kizuna-agent-theme") as Theme) || "dark";
   } catch {
-    return "light";
+    return "dark";
   }
 }
 
@@ -85,7 +85,7 @@ export function App() {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.classList.toggle("light", theme === "light");
-    document.body.style.background = theme === "dark" ? "#020617" : "#f8fafc";
+    document.body.style.background = theme === "dark" ? "#020617" : "#ffffff";
     document.body.style.color = theme === "dark" ? "#e2e8f0" : "#1e293b";
     localStorage.setItem("kizuna-agent-theme", theme);
   }, [theme]);
@@ -96,12 +96,9 @@ export function App() {
     <div
       className={`editorial-ui h-full flex flex-col ${isDark ? "dark" : "light"}`}
     >
-      {/* Top bar */}
-      <header
-        className="editorial-topbar shrink-0"
-      >
+      <header className="editorial-topbar shrink-0">
         <div className="flex items-center gap-3">
-          <img src="/lunagotchi.png" alt="Kizuna Agent" className="w-7 h-7 rounded-lg" />
+          <img src="/kizuna-logo.svg" alt="Kizuna Agent" className="w-7 h-7 rounded-lg" />
           <h1
             className="text-sm font-semibold tracking-[0.14em] uppercase text-[var(--ink)]"
           >
@@ -178,10 +175,7 @@ export function App() {
       </header>
 
       <div className="flex flex-1 min-h-0">
-        {/* Sidebar */}
-        <nav
-          className="editorial-rail flex flex-col py-2"
-        >
+        <nav className="editorial-rail flex flex-col py-2">
           {NAV.map((item) => (
             <button
               key={item.id}
@@ -199,16 +193,15 @@ export function App() {
           ))}
 
           <div className="mt-auto px-4 py-3 flex items-center gap-2">
-            <img src="/appicon.png" alt="" className="w-5 h-5 rounded" />
+            <img src="/kizuna-logo.svg" alt="" className="w-5 h-5 rounded" />
             <span
-              className={`text-[10px] ${isDark ? "text-slate-600" : "text-slate-400"} mono`}
+              className="text-[10px] text-[var(--muted)] mono"
             >
               v0.1
             </span>
           </div>
         </nav>
 
-        {/* Main */}
         <main className="flex-1 min-w-0 overflow-hidden debug-scroll bg-[var(--canvas)]">
           <div className="h-full overflow-auto debug-scroll p-6 fade-in">
             {view === "dashboard" && <DashboardPanel isDark={isDark} />}

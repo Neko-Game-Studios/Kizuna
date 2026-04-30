@@ -55,7 +55,7 @@ export function AgentsPanel({ isDark }: { isDark: boolean }) {
 
   return (
     <div className="flex flex-col h-full -m-5">
-      {/* Toolbar */}
+      {}
       <div
         className={`shrink-0 border-b px-5 py-3 flex items-center gap-3 ${
           isDark ? "border-slate-800" : "border-slate-200"
@@ -201,8 +201,6 @@ export function AgentsPanel({ isDark }: { isDark: boolean }) {
     </div>
   );
 }
-
-// ─── Agent Detail ───
 
 function AgentDetail({
   agentId,

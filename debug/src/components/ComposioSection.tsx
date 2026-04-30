@@ -78,12 +78,6 @@ interface NeedsAuthConfigInfo {
   message: string;
   setupUrl: string;
 }
-
-// Per-toolkit guidance for BYO OAuth setup. Composio doesn't host a shared OAuth
-// app for these — the user has to register one on the toolkit's developer portal,
-// then paste the credentials into Composio's auth-configs page. Adding entries
-// here makes the setup flow self-explanatory; missing entries fall back to a
-// generic message and the Composio link.
 const BYO_PORTALS: Record<string, { label: string; url: string; note?: string }> = {
   twitter: {
     label: "X (Twitter) Developer Portal",
@@ -104,7 +98,7 @@ const BYO_PORTALS: Record<string, { label: string; url: string; note?: string }>
 
 const COMPOSIO_DASHBOARD_URL = "https://dashboard.composio.dev";
 
-const INTRO_DISMISSED_KEY = "boop:connections:intro-dismissed";
+const INTRO_DISMISSED_KEY = "kizuna:connections:intro-dismissed";
 const TOAST_TIMEOUT_MS = 6000;
 
 interface ToastState {
@@ -218,7 +212,6 @@ export function ComposioSection({ isDark }: { isDark: boolean }) {
     try {
       window.localStorage.setItem(INTRO_DISMISSED_KEY, "1");
     } catch {
-      /* ignore — private mode etc. */
     }
   }, []);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -248,8 +241,6 @@ export function ComposioSection({ isDark }: { isDark: boolean }) {
     },
     [],
   );
-  // OAuth popup polling interval — kept in a ref so we can clear it on unmount
-  // (prevents an orphan interval firing fetches after the panel closes).
   const authPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(
     () => () => {
@@ -310,7 +301,6 @@ export function ComposioSection({ isDark }: { isDark: boolean }) {
           "composio-auth",
           `width=${w},height=${h},left=${left},top=${top}`,
         );
-        // Replace any prior poll (defensive — you'd have to spam Connect for this to matter).
         if (authPollRef.current) clearInterval(authPollRef.current);
         authPollRef.current = setInterval(async () => {
           if (!popup || popup.closed) {
@@ -321,7 +311,6 @@ export function ComposioSection({ isDark }: { isDark: boolean }) {
             try {
               await fetch("/api/composio/refresh", { method: "POST" });
             } catch {
-              /* ignore */
             }
             await fetchToolkits();
             setBusy(null);

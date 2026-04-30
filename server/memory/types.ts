@@ -22,12 +22,6 @@ export interface MemoryRecord {
   supersedes?: string[];
   metadata?: string;
 }
-
-// Per-segment defaults ported from Ping's `category_defaults` config.
-// extract.ts uses `tier` and `decayRate` from here when storing a new memory,
-// and clamps/falls back to `importance` when the LLM returns a value that's
-// missing or outside [0, 1]. clean.ts uses decayRate when computing adaptive
-// half-life. Identity / correction decay the slowest, context decays fastest.
 export interface SegmentDefault {
   tier: MemoryTier;
   importance: number;
@@ -43,8 +37,6 @@ export const SEGMENT_DEFAULTS: Record<MemorySegment, SegmentDefault> = {
   knowledge: { tier: "long", importance: 0.60, decayRate: 0.03 },
   context: { tier: "short", importance: 0.40, decayRate: 0.08 },
 };
-
-// Kept for backward compat. New code should prefer SEGMENT_DEFAULTS[segment].decayRate.
 export const DEFAULT_DECAY: Record<MemoryTier, number> = {
   short: 0.05,
   long: 0.02,

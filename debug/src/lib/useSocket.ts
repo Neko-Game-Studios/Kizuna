@@ -36,11 +36,9 @@ function connect() {
       const parsed = JSON.parse(evt.data) as SocketEvent;
       for (const handler of handlers) handler(parsed);
     } catch {
-      /* ignore */
     }
   };
   sharedWs.onerror = () => {
-    // Let onclose schedule reconnect. Don't log noisy transient dev errors.
     if (sharedWs?.readyState === WebSocket.OPEN) sharedWs.close();
   };
   sharedWs.onclose = () => {
@@ -67,8 +65,6 @@ function releaseSocketSoon() {
     if (sharedWs?.readyState === WebSocket.OPEN) {
       sharedWs.close();
     }
-    // If CONNECTING, don't call close(); browsers log
-    // "WebSocket is closed before the connection is established".
     sharedWs = null;
     emitConnected(false);
   }, 750);

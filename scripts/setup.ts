@@ -30,19 +30,16 @@ function writeEnv(path: string, env: Record<string, string>): void {
     const sectionKeys = [...section.matchAll(/^([A-Z0-9_]+)=/gm)].map((m) => m[1]);
     let s = section;
     for (const k of sectionKeys) {
-      // Remove ALL existing occurrences of this key in the section (dedupe).
       const pattern = new RegExp(`^${k}=.*(\\r?\\n)?`, "gm");
       const matches = [...s.matchAll(pattern)];
       if (matches.length === 0) continue;
 
       if (seen.has(k)) {
-        // Already written in an earlier section — just strip any re-occurrences.
         s = s.replace(pattern, "");
         continue;
       }
 
       const v = env[k] ?? "";
-      // Replace first occurrence, remove the rest.
       let replaced = false;
       s = s.replace(pattern, (match) => {
         if (!replaced) {
@@ -71,16 +68,12 @@ function banner(s: string) {
 }
 
 async function runConvexDev(): Promise<void> {
-  // If CONVEX_DEPLOYMENT is already set, `convex dev` reuses that deployment.
-  // Only pass --configure new if this is a first-time setup — otherwise re-running
-  // setup would silently create a new project and abandon all existing data.
   const existing = readEnv(ENV_PATH);
   const args = existing.CONVEX_DEPLOYMENT
     ? ["convex", "dev", "--once"]
     : ["convex", "dev", "--once", "--configure", "new"];
 
   if (!existing.CONVEX_DEPLOYMENT) {
-    // Remove VITE_CONVEX_URL from the env file to allow convex cli to populate it.
     cleanConvexUrlEnv(ENV_PATH);
   }
 
@@ -119,7 +112,6 @@ function openInBrowser(url: string): void {
   try {
     spawn(cmd, [url], { stdio: "ignore", detached: true }).unref();
   } catch {
-    /* ignore — fall back to the printed URL */
   }
 }
 
@@ -158,7 +150,7 @@ Before you start:
       },
       {
         type: "select",
-        name: "BOOP_MODEL",
+        name: "KIZUNA_MODEL",
         message: "Which Codex model should the agent use?",
         choices: [
           { title: "auto (recommended for Codex subscription)", value: "auto" },
@@ -191,8 +183,6 @@ Before you start:
   if (!answers.TELEGRAM_BOT_TOKEN && existing.TELEGRAM_BOT_TOKEN && !answers.replaceTelegramToken) {
     answers.TELEGRAM_BOT_TOKEN = existing.TELEGRAM_BOT_TOKEN;
   }
-
-  // ---- Composio API key ---------------------------------------------------
   banner("Composio — integrations (Gmail, GitHub, Linear, Notion, 1000+ more)");
   const composioSettingsUrl = "https://platform.composio.dev/settings";
   const existingComposio = existing.COMPOSIO_API_KEY ?? "";

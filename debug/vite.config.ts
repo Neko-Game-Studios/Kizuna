@@ -6,8 +6,6 @@ import path from "node:path";
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 
 export default defineConfig(({ mode }) => {
-  // Load .env.local from the project root (not debug/) so we can read PORT
-  // even though this config file lives under debug/.
   const env = loadEnv(mode, PROJECT_ROOT, "");
   const port = Number(env.PORT ?? process.env.PORT ?? 3456);
 
@@ -16,6 +14,7 @@ export default defineConfig(({ mode }) => {
     envDir: PROJECT_ROOT,
     plugins: [react(), tailwindcss()],
     server: {
+      host: "127.0.0.1",
       port: 5173,
       proxy: {
         "/api": {
@@ -23,7 +22,6 @@ export default defineConfig(({ mode }) => {
           rewrite: (p) => p.replace(/^\/api/, ""),
           configure: (proxy) => {
             proxy.on("error", () => {
-              /* ignore — server may be restarting */
             });
           },
         },
@@ -32,7 +30,6 @@ export default defineConfig(({ mode }) => {
           ws: true,
           configure: (proxy) => {
             proxy.on("error", () => {
-              /* WS proxy EPIPE on reconnect is harmless */
             });
           },
         },

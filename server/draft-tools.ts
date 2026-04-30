@@ -7,14 +7,9 @@ import { spawnExecutionAgent } from "./execution-agent.js";
 function randomId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
-
-/**
- * Drafts MCP for EXECUTION agents. They use this to stage an action instead of
- * performing it directly.
- */
 export function createDraftStagingMcp(conversationId: string) {
   return createSdkMcpServer({
-    name: "boop-drafts",
+    name: "kizuna-drafts",
     version: "0.1.0",
     tools: [
       tool(
@@ -52,13 +47,9 @@ ALWAYS call this instead of sending or creating something directly. The user wil
     ],
   });
 }
-
-/**
- * Drafts MCP for the INTERACTION agent. Lets it review and approve drafts the user confirmed.
- */
 export function createDraftDecisionMcp(conversationId: string) {
   return createSdkMcpServer({
-    name: "boop-draft-decisions",
+    name: "kizuna-draft-decisions",
     version: "0.1.0",
     tools: [
       tool(

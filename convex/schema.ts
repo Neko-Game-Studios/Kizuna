@@ -42,10 +42,6 @@ export default defineSchema({
     lifecycle: v.union(v.literal("active"), v.literal("archived"), v.literal("pruned")),
     supersedes: v.optional(v.array(v.string())),
     embedding: v.optional(v.array(v.float64())),
-    // Structured sidecar data (JSON blob). Currently used to carry
-    // `corrects` text on correction-segment memories. Intentionally loose
-    // so extraction prompts can stash provider-specific hints without
-    // schema churn.
     metadata: v.optional(v.string()),
     createdAt: v.number(),
   })
@@ -85,10 +81,6 @@ export default defineSchema({
     .index("by_agent_id", ["agentId"])
     .index("by_status", ["status"])
     .index("by_conversation", ["conversationId"]),
-
-  // Append-only LLM usage log. Every model call (dispatcher, execution,
-  // extract, consolidation) writes a row here so you can query total cost
-  // by source, conversation, or time range.
   usageRecords: defineTable({
     source: v.union(
       v.literal("dispatcher"),
@@ -125,9 +117,6 @@ export default defineSchema({
       v.literal("error"),
     ),
     toolName: v.optional(v.string()),
-    // Composio account aliases targeted by this tool call (e.g. ["gmail_charry-fusc"]).
-    // Populated when the input names a specific connected account, so multi-account
-    // toolkits make it visible which inbox / workspace was actually hit.
     accounts: v.optional(v.array(v.string())),
     content: v.string(),
     createdAt: v.number(),
@@ -190,18 +179,12 @@ export default defineSchema({
     mergedCount: v.number(),
     prunedCount: v.number(),
     notes: v.optional(v.string()),
-    // JSON blob: { proposals: [...], decisions: [...], applied: [...] }
-    // Captured so you can inspect the reasoning for any historical run.
     details: v.optional(v.string()),
     startedAt: v.number(),
     completedAt: v.optional(v.number()),
   })
     .index("by_run_id", ["runId"])
     .index("by_status", ["status"]),
-
-  // Runtime overrides for things normally pinned by env vars (e.g. the Codex
-  // model). Lets the user switch models from chat and have the next agent
-  // run respect it without a redeploy.
   settings: defineTable({
     key: v.string(),
     value: v.string(),

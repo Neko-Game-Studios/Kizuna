@@ -17,7 +17,7 @@ import {
 
 export function createSelfMcp() {
   return createSdkMcpServer({
-    name: "boop-self",
+    name: "kizuna-self",
     version: "0.1.0",
     tools: [
       tool(
@@ -28,7 +28,7 @@ export function createSelfMcp() {
           const integrations = availableIntegrations();
           const config = {
             model: await getRuntimeModel(),
-            envDefault: process.env.BOOP_MODEL ?? "auto",
+            envDefault: process.env.KIZUNA_MODEL ?? "auto",
             availableModels: [...KNOWN_MODELS],
             integrationsLoaded: integrations,
             integrationCount: integrations.length,

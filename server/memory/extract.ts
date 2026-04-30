@@ -43,7 +43,7 @@ export async function extractAndStore(opts: {
   turnId: string;
 }): Promise<void> {
   const started = Date.now();
-  const requestedModel = process.env.BOOP_MODEL ?? "auto";
+  const requestedModel = process.env.KIZUNA_MODEL ?? "auto";
   try {
     const payload = `USER: ${opts.userMessage}\n\nASSISTANT: ${opts.assistantReply}`;
     const result = await askCodex(payload, EXTRACTION_PROMPT, requestedModel);
@@ -70,9 +70,7 @@ export async function extractAndStore(opts: {
 
     for (const f of facts) {
       const defaults = SEGMENT_DEFAULTS[f.segment];
-      if (!defaults) continue; // skip unknown segment rather than crashing
-      // Clamp importance to [0, 1]; fall back to segment default when the
-      // LLM omits it or returns garbage.
+      if (!defaults) continue;
       const rawImportance =
         typeof f.importance === "number" && Number.isFinite(f.importance)
           ? Math.max(0, Math.min(1, f.importance))
