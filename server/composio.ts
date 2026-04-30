@@ -49,6 +49,16 @@ export function getComposio(): Composio<ClaudeAgentSDKProvider> | null {
   return singleton;
 }
 
+let clientSingleton: Composio | null = null;
+
+export function getComposioClient(): Composio | null {
+  if (clientSingleton) return clientSingleton;
+  const apiKey = process.env.COMPOSIO_API_KEY;
+  if (!apiKey) return null;
+  clientSingleton = new Composio({ apiKey });
+  return clientSingleton;
+}
+
 export function kizunaUserId(): string {
   return process.env.COMPOSIO_USER_ID ?? "kizuna-default";
 }

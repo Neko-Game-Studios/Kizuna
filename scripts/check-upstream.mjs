@@ -76,15 +76,6 @@ ${C.yellow}╭──────────────────────
 function stripAnsi(s) {
   return s.replace(/\x1b\[[0-9;]*m/g, "");
 }
-
-function printNoUpstreamHint() {
-  console.log(
-    `${C.dim}  ℹ Tip: set up upstream for new-version checks on \`npm run dev\`:
-     ${C.bold}git remote add upstream https://github.com/raroque/kizuna-agent.git${C.reset}${C.dim}
-     Then \`claude\` → \`/upgrade-kizuna\` whenever upstream has changes.${C.reset}
-`,
-  );
-}
 function readEnvLocal() {
   const p = resolve(root, ".env.local");
   if (!existsSync(p)) return {};
@@ -105,10 +96,6 @@ if (!upstreamCheckEnabled) process.exit(0);
   const upstreamUrl = tryExec("git remote get-url upstream");
 
   if (!upstreamUrl) {
-    const originUrl = tryExec("git remote get-url origin") || "";
-    if (!CANONICAL_REGEX.test(originUrl)) {
-      printNoUpstreamHint();
-    }
     return;
   }
 

@@ -1,5 +1,3 @@
-import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
-
 export interface UsageTotals {
   model: string;
   inputTokens: number;
@@ -17,57 +15,21 @@ export const EMPTY_USAGE: UsageTotals = {
   cacheCreationTokens: 0,
   costUsd: 0,
 };
-export function aggregateUsageFromResult(
-  msg: Extract<SDKMessage, { type: "result" }>,
+export function usageFromCodexTurn(
+  usage: {
+    input_tokens?: number;
+    cached_input_tokens?: number;
+    output_tokens?: number;
+    reasoning_output_tokens?: number;
+  } | null | undefined,
   requestedModel?: string,
 ): UsageTotals {
-  const modelUsage = (msg as { modelUsage?: Record<string, {
-    inputTokens?: number;
-    outputTokens?: number;
-    cacheReadInputTokens?: number;
-    cacheCreationInputTokens?: number;
-  }> }).modelUsage ?? {};
-
-  let inputTokens = 0;
-  let outputTokens = 0;
-  let cacheReadTokens = 0;
-  let cacheCreationTokens = 0;
-  let fallbackModel = "";
-  let fallbackTotal = 0;
-
-  for (const [model, u] of Object.entries(modelUsage)) {
-    const inT = u.inputTokens ?? 0;
-    const outT = u.outputTokens ?? 0;
-    inputTokens += inT;
-    outputTokens += outT;
-    cacheReadTokens += u.cacheReadInputTokens ?? 0;
-    cacheCreationTokens += u.cacheCreationInputTokens ?? 0;
-    const total = inT + outT;
-    if (total > fallbackTotal) {
-      fallbackTotal = total;
-      fallbackModel = model;
-    }
-  }
-  let reportedModel: string;
-  if (requestedModel && matchesAnyKey(requestedModel, Object.keys(modelUsage))) {
-    reportedModel = requestedModel;
-  } else {
-    reportedModel = fallbackModel || requestedModel || "unknown";
-  }
-
   return {
-    model: reportedModel,
-    inputTokens,
-    outputTokens,
-    cacheReadTokens,
-    cacheCreationTokens,
-    costUsd: msg.total_cost_usd ?? 0,
+    model: requestedModel || "unknown",
+    inputTokens: usage?.input_tokens ?? 0,
+    outputTokens: usage?.output_tokens ?? 0,
+    cacheReadTokens: usage?.cached_input_tokens ?? 0,
+    cacheCreationTokens: 0,
+    costUsd: 0,
   };
-}
-
-function matchesAnyKey(requested: string, keys: string[]): boolean {
-  if (keys.includes(requested)) return true;
-  return keys.some(
-    (k) => k === requested || k.startsWith(requested) || requested.startsWith(k),
-  );
 }

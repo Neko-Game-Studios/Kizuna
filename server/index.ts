@@ -5,7 +5,6 @@ import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
 import { addClient } from "./broadcast.js";
 import { handleUserMessage } from "./interaction-agent.js";
-import { loadIntegrations } from "./integrations/registry.js";
 import { startCleanupLoop } from "./memory/clean.js";
 import { startAutomationLoop } from "./automations.js";
 import { startHeartbeatLoop } from "./heartbeat.js";
@@ -17,7 +16,6 @@ import { api } from "../convex/_generated/api.js";
 import { convex } from "./convex-client.js";
 
 async function main() {
-  await loadIntegrations();
   startCleanupLoop();
   startAutomationLoop();
   startHeartbeatLoop();

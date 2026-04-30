@@ -1,24 +1,23 @@
 import express from "express";
 import {
-  authorizeToolkit,
   ComposioNeedsAuthConfigError,
   CURATED_TOOLKITS,
-  disconnectToolkit,
   displayNameFor,
-  getComposio,
+  disconnectToolkit,
   listConnectedToolkits,
   listToolkitMeta,
   listToolkitSlugsWithAuthConfig,
   listToolsForToolkit,
+  authorizeToolkit,
+  getComposioClient,
   renameConnection,
-} from "./composio.js";
-import { refreshIntegrations } from "./integrations/registry.js";
+} from "./composio-data.js";
 
 export function createComposioRouter(): express.Router {
   const router = express.Router();
 
   router.get("/status", (_req, res) => {
-    res.json({ enabled: Boolean(getComposio()) });
+    res.json({ enabled: Boolean(getComposioClient()) });
   });
 
   router.get("/toolkits", async (_req, res) => {
@@ -82,7 +81,7 @@ export function createComposioRouter(): express.Router {
           };
         });
 
-      res.json({ enabled: Boolean(getComposio()), toolkits: [...curated, ...extras] });
+      res.json({ enabled: Boolean(getComposioClient()), toolkits: [...curated, ...extras] });
     } catch (err) {
       console.error("[composio-routes] list failed", err);
       res.status(500).json({ error: String(err) });
@@ -130,7 +129,6 @@ export function createComposioRouter(): express.Router {
     }
     try {
       await disconnectToolkit(connectionId);
-      await refreshIntegrations();
       res.json({ ok: true });
     } catch (err) {
       console.error(`[composio-routes] disconnect ${slug} failed`, err);
@@ -156,7 +154,6 @@ export function createComposioRouter(): express.Router {
 
   router.post("/refresh", async (_req, res) => {
     try {
-      await refreshIntegrations();
       res.json({ ok: true });
     } catch (err) {
       console.error("[composio-routes] refresh failed", err);

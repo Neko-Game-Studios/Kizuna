@@ -1,10 +1,9 @@
-import { query } from "@anthropic-ai/claude-agent-sdk";
 import { api } from "../convex/_generated/api.js";
 import { convex } from "./convex-client.js";
 import { broadcast } from "./broadcast.js";
-import { buildMcpServersForIntegrations, listIntegrations } from "./integrations/registry.js";
-import { createDraftStagingMcp } from "./draft-tools.js";
-import { aggregateUsageFromResult, EMPTY_USAGE, type UsageTotals } from "./usage.js";
+import { askCodex } from "./codex-agent.js";
+import { buildExecutionCodexConfig } from "./codex-mcp-config.js";
+import { EMPTY_USAGE, type UsageTotals, usageFromCodexTurn } from "./usage.js";
 import { getRuntimeModel } from "./runtime-config.js";
 
 const running = new Map<string, AbortController>();
@@ -40,7 +39,7 @@ const EXECUTION_SYSTEM = `You are a focused background worker for the user.
 
 Your job:
 1. Perform the task you were given, end to end.
-2. Use your tools — WebSearch, WebFetch, and any integrations loaded for this spawn — to investigate and act.
+2. Use your tools — WebSearch, WebFetch, save_draft, and the Composio MCP tools loaded for this spawn — to investigate and act.
 3. Return a concise, well-structured answer — not a data dump.
 
 Research discipline:
@@ -109,24 +108,6 @@ export async function spawnExecutionAgent(opts: SpawnOptions): Promise<SpawnResu
 
   await convex.mutation(api.agents.update, { agentId, status: "running" });
 
-  const integrationServers = await buildMcpServersForIntegrations(
-    opts.integrations,
-    opts.conversationId,
-  );
-  const draftServer = opts.conversationId
-    ? createDraftStagingMcp(opts.conversationId)
-    : undefined;
-  const mcpServers = {
-    ...integrationServers,
-    ...(draftServer ? { "kizuna-drafts": draftServer } : {}),
-  };
-  const allowedTools = [
-    "WebSearch",
-    "WebFetch",
-    "Skill",
-    ...Object.keys(mcpServers).flatMap((n) => [`mcp__${n}__*`]),
-  ];
-
   let buffer = "";
   let usage: UsageTotals = { ...EMPTY_USAGE };
   let status: "completed" | "failed" | "cancelled" = "completed";
@@ -134,59 +115,59 @@ export async function spawnExecutionAgent(opts: SpawnOptions): Promise<SpawnResu
 
   const requestedModel = await getRuntimeModel();
   try {
-    for await (const msg of query({
-      prompt: opts.task,
-      options: {
-        systemPrompt: EXECUTION_SYSTEM,
-        model: requestedModel,
-        mcpServers,
-        allowedTools,
-        settingSources: ["project"],
-        permissionMode: "bypassPermissions",
-        abortController: abort,
-      },
-    })) {
-      if (msg.type === "assistant") {
-        for (const block of msg.message.content) {
-          if (block.type === "text") {
-            buffer += block.text;
-            await convex.mutation(api.agents.addLog, {
-              agentId,
-              logType: "text",
-              content: block.text,
-            });
-          } else if (block.type === "tool_use") {
-            const toolShort = block.name.replace(/^mcp__[a-z-]+__/, "");
-            const accounts = extractAccounts(block.input);
-            const acctSuffix = accounts.length ? ` [${accounts.join(", ")}]` : "";
-            logAgent(`tool: ${toolShort}${acctSuffix}`);
-            await convex.mutation(api.agents.addLog, {
-              agentId,
-              logType: "tool_use",
-              toolName: block.name,
-              ...(accounts.length ? { accounts } : {}),
-              content: JSON.stringify(block.input).slice(0, 2000),
-            });
-            broadcast("agent_tool", { agentId, toolName: block.name, accounts });
-          }
+    const codexResult = await askCodex(opts.task, EXECUTION_SYSTEM, requestedModel, {
+      codexConfig: buildExecutionCodexConfig({
+        conversationId: opts.conversationId,
+        integrations: opts.integrations,
+      }),
+    });
+    buffer = codexResult.text;
+    usage = {
+      ...EMPTY_USAGE,
+      ...usageFromCodexTurn(
+        {
+          input_tokens: codexResult.inputTokens,
+          output_tokens: codexResult.outputTokens,
+        },
+        requestedModel,
+      ),
+    };
+    for (const item of codexResult.items) {
+      if (item.type === "mcp_tool_call") {
+        const accounts = extractAccounts(item.arguments);
+        const toolName = `${item.server}.${item.tool}`;
+        const acctSuffix = accounts.length ? ` [${accounts.join(", ")}]` : "";
+        logAgent(`tool: ${toolName}${acctSuffix}`);
+        await convex.mutation(api.agents.addLog, {
+          agentId,
+          logType: "tool_use",
+          toolName,
+          ...(accounts.length ? { accounts } : {}),
+          content: JSON.stringify(item.arguments).slice(0, 2000),
+        });
+        broadcast("agent_tool", { agentId, toolName, accounts });
+        if (item.result?.content?.length) {
+          const text = item.result.content
+            .map((c) => (c.type === "text" ? c.text ?? "" : ""))
+            .join("");
+          await convex.mutation(api.agents.addLog, {
+            agentId,
+            logType: "tool_result",
+            content: text.slice(0, 2000),
+          });
         }
-      } else if (msg.type === "user") {
-        for (const block of msg.message.content) {
-          if (block.type === "tool_result") {
-            const text = Array.isArray(block.content)
-              ? block.content
-                  .map((c: { type: string; text?: string }) => (c.type === "text" ? (c.text ?? "") : ""))
-                  .join("")
-              : String(block.content ?? "");
-            await convex.mutation(api.agents.addLog, {
-              agentId,
-              logType: "tool_result",
-              content: text.slice(0, 2000),
-            });
-          }
-        }
-      } else if (msg.type === "result") {
-        usage = aggregateUsageFromResult(msg, requestedModel);
+      } else if (item.type === "agent_message" && item.text.trim()) {
+        await convex.mutation(api.agents.addLog, {
+          agentId,
+          logType: "text",
+          content: item.text,
+        });
+      } else if (item.type === "error") {
+        await convex.mutation(api.agents.addLog, {
+          agentId,
+          logType: "error",
+          content: item.message,
+        });
       }
     }
   } catch (err) {
@@ -259,5 +240,5 @@ export async function retryAgent(agentId: string): Promise<SpawnResult | null> {
 }
 
 export function availableIntegrations(): string[] {
-  return listIntegrations().map((i) => i.name);
+  return [];
 }

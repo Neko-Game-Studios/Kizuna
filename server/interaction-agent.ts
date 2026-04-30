@@ -1,18 +1,14 @@
-import { query, tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
-import { z } from "zod";
 import { api } from "../convex/_generated/api.js";
 import { convex } from "./convex-client.js";
-import { createMemoryMcp } from "./memory/tools.js";
 import { extractAndStore } from "./memory/extract.js";
-import { availableIntegrations, spawnExecutionAgent } from "./execution-agent.js";
-import { createAutomationMcp } from "./automation-tools.js";
-import { createDraftDecisionMcp } from "./draft-tools.js";
-import { createSelfMcp } from "./self-tools.js";
+import { spawnExecutionAgent } from "./execution-agent.js";
 import { getRuntimeModel } from "./runtime-config.js";
 import { broadcast } from "./broadcast.js";
 import { sendToConversation } from "./channel-send.js";
 import { EMPTY_USAGE, type UsageTotals } from "./usage.js";
 import { askCodex } from "./codex-agent.js";
+import { listConnectedToolkits, listToolkitMeta, listToolsForToolkit } from "./composio-data.js";
+import { buildInteractionCodexConfig } from "./codex-mcp-config.js";
 
 const INTERACTION_SYSTEM = `You are Kizuna Agent, a personal agent the user can message from chat or Telegram.
 
@@ -122,9 +118,94 @@ function randomId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function normalizeName(value: string): string {
+  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "");
+}
+
+function extractToolkitName(content: string): string | null {
+  const patterns = [
+    /(?:is|was|are|do i have)\s+([a-z0-9._ -]+?)\s+connected\b/i,
+    /what tools does\s+([a-z0-9._ -]+?)\s+expose\b/i,
+    /which\s+([a-z0-9._ -]+?)\s+account\b/i,
+  ];
+  for (const pattern of patterns) {
+    const match = content.match(pattern);
+    if (match?.[1]) return match[1].trim();
+  }
+  return null;
+}
+
+function wantsGmailLatestMail(content: string): boolean {
+  return (
+    /(?:latest|newest|most recent|recent|last)\s+(?:gmail\s+)?(?:mail|email|message|inbox)/i.test(content) ||
+    (/\bgmail\b/i.test(content) &&
+      /(?:pull up|check|fetch|show|get|read|open|latest|newest|recent|inbox|mail|email|message)/i.test(content))
+  );
+}
+
+async function handleSelfInspection(content: string): Promise<string | null> {
+  const lower = content.toLowerCase();
+  const connected = await listConnectedToolkits();
+
+  if (/(what integrations|which integrations|what tools do i have connected|what accounts are connected)/i.test(content)) {
+    if (connected.length === 0) {
+      return "No integrations are connected yet.";
+    }
+    const lines = connected.map((toolkit) => {
+      const label = toolkit.accountLabel ?? toolkit.accountEmail ?? toolkit.alias ?? "(unknown)";
+      const status = toolkit.status === "ACTIVE" ? "connected" : toolkit.status.toLowerCase();
+      return `• ${toolkit.slug} — ${status}${label ? ` — ${label}` : ""}`;
+    });
+    return `Connected integrations:\n${lines.join("\n")}`;
+  }
+
+  if (/what model are you|which model|what codex model|what version are you/i.test(content)) {
+    const { getRuntimeModel } = await import("./runtime-config.js");
+    return `I'm using ${await getRuntimeModel()}.`;
+  }
+
+  const toolkitName = extractToolkitName(content);
+  if (!toolkitName) return null;
+
+  const normalized = normalizeName(toolkitName);
+  const matched = connected.find((toolkit) => normalizeName(toolkit.slug).includes(normalized));
+
+  if (/what tools does .* expose/i.test(lower)) {
+    const meta = await listToolkitMeta();
+    const toolkit = matched ?? connected.find((t) => normalizeName(t.slug) === normalized);
+    if (!toolkit) {
+      return `I don't see ${toolkitName} connected yet.`;
+    }
+    const tools = await listToolsForToolkit(toolkit.slug);
+    const name = meta.get(toolkit.slug)?.name ?? toolkit.slug;
+    if (tools.length === 0) {
+      return `${name} is connected, but I couldn't load its tool list right now.`;
+    }
+    const listed = tools.slice(0, 12).map((tool) => `• ${tool.name ?? tool.slug}`).join("\n");
+    return `${name} is connected.\nTools:\n${listed}${tools.length > 12 ? "\n• …" : ""}`;
+  }
+
+  if (/connected\b/i.test(content)) {
+    if (matched) {
+      const label = matched.accountLabel ?? matched.accountEmail ?? matched.alias ?? "(unknown)";
+      return `${matched.slug} is connected${label ? ` as ${label}` : ""}.`;
+    }
+    return `${toolkitName} isn't connected yet.`;
+  }
+
+  if (/which .* account/i.test(lower) && matched) {
+    const label = matched.accountLabel ?? matched.accountEmail ?? matched.alias ?? "(unknown)";
+    return `${matched.slug} is connected as ${label}.`;
+  }
+
+  return null;
+}
+
 export async function handleUserMessage(opts: HandleOpts): Promise<string> {
   const turnId = randomId("turn");
-  const integrations = availableIntegrations();
+  // Refresh the connected toolkit list so newly connected accounts are visible on this turn.
+  const connectedToolkits = await listConnectedToolkits();
+  const integrations = connectedToolkits.map((toolkit) => toolkit.slug);
 
   await convex.mutation(api.messages.send, {
     conversationId: opts.conversationId,
@@ -133,84 +214,6 @@ export async function handleUserMessage(opts: HandleOpts): Promise<string> {
     turnId,
   });
   broadcast("user_message", { conversationId: opts.conversationId, content: opts.content });
-
-  const memoryServer = createMemoryMcp(opts.conversationId);
-  const automationServer = createAutomationMcp(opts.conversationId);
-  const draftDecisionServer = createDraftDecisionMcp(opts.conversationId);
-  const selfServer = createSelfMcp();
-
-  const ackServer = createSdkMcpServer({
-    name: "kizuna-ack",
-    version: "0.1.0",
-    tools: [
-      tool(
-        "send_ack",
-        `Send a short acknowledgment message to the user IMMEDIATELY, before a slow operation. Use this BEFORE spawn_agent so the user knows you heard them and are working on it. Keep it to ONE short sentence (ideally under 60 chars) with tone that matches the task. Examples: "On it — one sec 🔍", "Looking into it…", "Drafting now, hold tight.", "Let me check your calendar."`,
-        {
-          message: z.string().describe("1 short sentence ack. No markdown. Emojis OK."),
-        },
-        async (args) => {
-          const text = args.message.trim();
-          if (!text) {
-            return {
-              content: [{ type: "text" as const, text: "Empty ack skipped." }],
-            };
-          }
-          await sendToConversation(opts.conversationId, text);
-          await convex.mutation(api.messages.send, {
-            conversationId: opts.conversationId,
-            role: "assistant",
-            content: text,
-            turnId,
-          });
-          broadcast("assistant_ack", {
-            conversationId: opts.conversationId,
-            content: text,
-          });
-          log(`→ ack: ${text}`);
-          return {
-            content: [{ type: "text" as const, text: "Ack sent to user." }],
-          };
-        },
-      ),
-    ],
-  });
-
-  const spawnServer = createSdkMcpServer({
-    name: "kizuna-spawn",
-    version: "0.1.0",
-    tools: [
-      tool(
-        "spawn_agent",
-        "Spawn a focused sub-agent to do real work using external tools. Returns the agent's final answer. Use for anything requiring lookups, drafting, or actions in the user's integrations.",
-        {
-          task: z
-            .string()
-            .describe("Crisp task description — what to find/draft/do, not the raw user message."),
-          integrations: z
-            .array(z.string())
-            .describe(`Which integrations to give the agent. Available: ${integrations.join(", ") || "(none)"}`),
-          name: z.string().optional().describe("Short label for the agent."),
-        },
-        async (args) => {
-          const res = await spawnExecutionAgent({
-            task: args.task,
-            integrations: args.integrations,
-            conversationId: opts.conversationId,
-            name: args.name,
-          });
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: `[agent ${res.agentId} ${res.status}]\n\n${res.result}`,
-              },
-            ],
-          };
-        },
-      ),
-    ],
-  });
 
   const history = await convex.query(api.messages.recent, {
     conversationId: opts.conversationId,
@@ -238,14 +241,43 @@ export async function handleUserMessage(opts: HandleOpts): Promise<string> {
   let reply = "";
   let usage: UsageTotals = { ...EMPTY_USAGE };
   try {
-    const codexResult = await askCodex(prompt, systemPrompt, requestedModel);
-    reply = codexResult.text;
-    usage = {
-      ...EMPTY_USAGE,
-      model: requestedModel,
-      inputTokens: codexResult.inputTokens,
-      outputTokens: codexResult.outputTokens,
-    };
+    if (wantsGmailLatestMail(opts.content)) {
+      const ack = "Checking your latest Gmail now.";
+      await sendToConversation(opts.conversationId, ack);
+      await convex.mutation(api.messages.send, {
+        conversationId: opts.conversationId,
+        role: "assistant",
+        content: ack,
+        turnId,
+      });
+      broadcast("assistant_ack", { conversationId: opts.conversationId, content: ack });
+      const res = await spawnExecutionAgent({
+        conversationId: opts.conversationId,
+        integrations,
+        name: "gmail-latest-mail",
+        task:
+          "Pull the user's newest email from Gmail. Return sender, subject, timestamp, and a short snippet. If Gmail is unavailable, say so plainly. Do not invent a connection status. Use the connected default Gmail account unless the user specified a particular one.",
+      });
+      reply = res.result;
+      usage = { ...EMPTY_USAGE, model: requestedModel };
+    } else {
+      const selfReply = await handleSelfInspection(opts.content);
+      if (selfReply) {
+        reply = selfReply;
+        usage = { ...EMPTY_USAGE, model: requestedModel };
+      } else {
+        const codexResult = await askCodex(prompt, systemPrompt, requestedModel, {
+          codexConfig: buildInteractionCodexConfig(opts.conversationId),
+        });
+        reply = codexResult.text;
+        usage = {
+          ...EMPTY_USAGE,
+          model: requestedModel,
+          inputTokens: codexResult.inputTokens,
+          outputTokens: codexResult.outputTokens,
+        };
+      }
+    }
   } catch (err) {
     console.error(`[turn ${tag}] codex failed`, err);
     reply = "Sorry — I hit an error processing that. Try again in a moment.";

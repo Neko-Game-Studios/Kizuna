@@ -1,8 +1,8 @@
-import { query } from "@anthropic-ai/claude-agent-sdk";
 import { api } from "../convex/_generated/api.js";
 import { convex } from "./convex-client.js";
 import { broadcast } from "./broadcast.js";
-import { aggregateUsageFromResult, EMPTY_USAGE, type UsageTotals } from "./usage.js";
+import { askCodex } from "./codex-agent.js";
+import { EMPTY_USAGE, type UsageTotals, usageFromCodexTurn } from "./usage.js";
 
 function randomId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -118,24 +118,18 @@ async function runLlm(
   model: string = DEFAULT_MODEL,
 ): Promise<{ buffer: string; usage: UsageTotals; durationMs: number }> {
   const started = Date.now();
-  let buffer = "";
-  let usage: UsageTotals = { ...EMPTY_USAGE };
-  for await (const msg of query({
-    prompt: userPrompt,
-    options: {
-      systemPrompt,
+  const result = await askCodex(userPrompt, systemPrompt, model);
+  const usage: UsageTotals = {
+    ...EMPTY_USAGE,
+    ...usageFromCodexTurn(
+      {
+        input_tokens: result.inputTokens,
+        output_tokens: result.outputTokens,
+      },
       model,
-      permissionMode: "bypassPermissions",
-    },
-  })) {
-    if (msg.type === "assistant") {
-      for (const block of msg.message.content) {
-        if (block.type === "text") buffer += block.text;
-      }
-    } else if (msg.type === "result") {
-      usage = aggregateUsageFromResult(msg, model);
-    }
-  }
+    ),
+  };
+  const buffer = result.text;
   return { buffer, usage, durationMs: Date.now() - started };
 }
 
